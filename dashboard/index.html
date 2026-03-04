@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>web3-mkt-agents — Setup Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap');
+:root{--bg:#0a0b0e;--surface:#111318;--surface2:#161920;--border:#1e2128;--border2:#2a2f3a;--text:#c8cdd8;--muted:#555c6e;--accent:#4fffb0;--accent2:#0dffd1;--warn:#ffb347;--danger:#ff4d6d;--ok:#4fffb0;--blue:#5b9cf6;--purple:#a78bfa;--r:8px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.5}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(79,255,176,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(79,255,176,.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:1140px;margin:0 auto;padding:0 24px 80px}
+header{padding:36px 0 28px;border-bottom:1px solid var(--border);margin-bottom:28px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;letter-spacing:-.5px;color:#fff}
+.logo span{color:var(--accent)}
+.hm{font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:.04em}
+.hr{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mb{font-size:10px;padding:3px 9px;border-radius:4px;letter-spacing:.06em;border:1px solid}
+.mb-l{background:rgba(79,255,176,.08);color:var(--accent);border-color:rgba(79,255,176,.25)}
+.mb-s{background:rgba(91,156,246,.08);color:var(--blue);border-color:rgba(91,156,246,.25)}
+.vb{font-size:10px;color:var(--muted);border:1px solid var(--border2);padding:3px 8px;border-radius:4px}
+.pw{margin-bottom:24px}
+.pl{display:flex;justify-content:space-between;margin-bottom:7px;font-size:11px;color:var(--muted);letter-spacing:.07em;text-transform:uppercase}
+.pb{height:2px;background:var(--border);border-radius:2px;overflow:hidden}
+.pf{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width .5s ease;box-shadow:0 0 10px rgba(79,255,176,.35)}
+.tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid var(--border);overflow-x:auto}
+.tab{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;padding:9px 15px 11px;cursor:pointer;color:var(--muted);border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tc{font-size:9px;background:var(--border2);padding:1px 5px;border-radius:8px;color:var(--muted)}
+.tab.active .tc{background:rgba(79,255,176,.15);color:var(--accent)}
+.panel{display:none}
+.panel.active{display:block}
+.sh{display:flex;align-items:center;gap:10px;margin-bottom:13px;margin-top:26px}
+.sh:first-child{margin-top:0}
+.sht{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text);white-space:nowrap}
+.shl{flex:1;height:1px;background:var(--border)}
+.sht2{font-size:10px;color:var(--muted);letter-spacing:.05em;white-space:nowrap}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:10px;transition:border-color .2s}
+.card:hover{border-color:var(--border2)}
+.fr{display:grid;grid-template-columns:230px 1fr 20px;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)}
+.fr:last-child{border-bottom:none;padding-bottom:0}
+.fr:first-child{padding-top:0}
+.fl{font-size:11px;font-weight:500;color:var(--text)}
+.fd{font-size:10px;color:var(--muted);margin-top:2px}
+.req{display:inline-block;font-size:9px;background:rgba(255,77,109,.12);color:var(--danger);padding:1px 5px;border-radius:3px;margin-left:5px;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle}
+.opt{display:inline-block;font-size:9px;background:rgba(85,92,110,.25);color:var(--muted);padding:1px 5px;border-radius:3px;margin-left:5px;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle}
+.fiw{position:relative;display:flex;align-items:center}
+input[type=text],input[type=password],input[type=email]{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:5px;padding:7px 32px 7px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);outline:none;transition:border-color .15s}
+input:focus{border-color:var(--accent)}
+input::placeholder{color:var(--muted)}
+.tv{position:absolute;right:8px;background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;padding:0;transition:color .15s}
+.tv:hover{color:var(--text)}
+.fs{font-size:12px;text-align:center}
+.ag{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:10px;margin-bottom:22px}
+.ac{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.ac::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ac-color,var(--border));opacity:0;transition:opacity .15s}
+.ac.on::before{opacity:1}
+.ac:hover{border-color:var(--border2);transform:translateY(-1px)}
+.ac.on{border-color:rgba(79,255,176,.2)}
+.ae{font-size:18px;margin-bottom:6px;display:block}
+.an{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#fff;margin-bottom:2px}
+.ar{font-size:10px;color:var(--muted);line-height:1.4;margin-bottom:7px}
+.am{font-size:9px;color:var(--blue);background:rgba(91,156,246,.1);padding:2px 6px;border-radius:3px;display:inline-block}
+.at{position:absolute;top:10px;right:10px;width:28px;height:16px;background:var(--border2);border-radius:8px;border:none;cursor:pointer;transition:background .2s}
+.at::after{content:'';position:absolute;top:3px;left:3px;width:10px;height:10px;background:var(--muted);border-radius:50%;transition:all .2s}
+.ac.on .at{background:rgba(79,255,176,.3)}
+.ac.on .at::after{left:15px;background:var(--accent)}
+.cb{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:16px;flex-wrap:wrap}
+.cv{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent)}
+.cl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+/* RAG */
+.rg{display:grid;grid-template-columns:255px 1fr;gap:14px;min-height:580px}
+.rl{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column}
+.rlh{padding:10px 13px;border-bottom:1px solid var(--border);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;flex-shrink:0}
+.rl-scroll{overflow-y:auto;flex:1}
+.ri{display:flex;align-items:center;gap:8px;padding:9px 13px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;font-size:11px;color:var(--text)}
+.ri:last-child{border-bottom:none}
+.ri:hover{background:var(--surface2)}
+.ri.active{background:rgba(79,255,176,.06);color:var(--accent)}
+.rd{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:var(--border2)}
+.ri.filled .rd{background:var(--ok);box-shadow:0 0 5px rgba(79,255,176,.3)}
+.ri.template .rd{background:var(--warn)}
+.rfn{flex:1;font-size:10px;word-break:break-all}
+.rws{font-size:9px;color:var(--muted)}
+.re{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden}
+.reh{padding:11px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;flex-shrink:0}
+.ret{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff}
+.rem2{font-size:10px;color:var(--muted)}
+.rea{display:flex;gap:7px}
+textarea.rta{flex:1;background:#070809;border:none;outline:none;padding:15px 17px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);line-height:1.7;resize:none;min-height:480px}
+textarea.rta::placeholder{color:var(--muted)}
+.ref{padding:9px 15px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--muted);flex-shrink:0}
+.rempty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:11px;gap:8px;padding:40px;text-align:center}
+/* Alert */
+.alert{border-radius:var(--r);padding:10px 14px;font-size:11px;margin-bottom:13px;display:flex;gap:8px;align-items:flex-start;line-height:1.5}
+.aw{background:rgba(255,179,71,.07);border:1px solid rgba(255,179,71,.18);color:var(--warn)}
+.ai{background:rgba(91,156,246,.07);border:1px solid rgba(91,156,246,.18);color:var(--blue)}
+.ao{background:rgba(79,255,176,.07);border:1px solid rgba(79,255,176,.18);color:var(--ok)}
+.ad{background:rgba(255,77,109,.07);border:1px solid rgba(255,77,109,.18);color:var(--danger)}
+/* Checklist */
+.cl2{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.ci{display:flex;align-items:center;gap:10px;padding:10px 15px;border-bottom:1px solid var(--border);font-size:11px}
+.ci:last-child{border-bottom:none}
+.cd{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--border2)}
+.ci.done .cd{background:var(--ok);box-shadow:0 0 5px rgba(79,255,176,.3)}
+.ci.warn .cd{background:var(--warn)}
+.ct{flex:1;color:var(--text)}
+.ci.done .ct{color:var(--muted)}
+.ca{font-size:10px;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+/* Terminal */
+.term{background:#070809;border:1px solid var(--border);border-radius:var(--r);padding:13px 17px;margin:9px 0;position:relative}
+.term::before{content:'● ● ●';display:block;font-size:9px;color:var(--muted);letter-spacing:4px;margin-bottom:10px}
+.term pre{font-size:11px;line-height:1.75;color:var(--text);white-space:pre-wrap;word-break:break-all}
+.term .c1{color:var(--accent)}.term .c2{color:var(--muted)}.term .c3{color:var(--warn)}.term .c4{color:var(--purple)}
+.cpb{position:absolute;top:9px;right:9px;background:var(--border2);border:none;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer;transition:all .15s}
+.cpb:hover{color:var(--text)}.cpb.cok{color:var(--accent)}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:8px 15px;border-radius:5px;border:none;cursor:pointer;transition:all .15s}
+.bp{background:var(--accent);color:#000}.bp:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 4px 14px rgba(79,255,176,.22)}
+.bs{background:var(--surface);color:var(--text);border:1px solid var(--border2)}.bs:hover{border-color:var(--accent);color:var(--accent)}
+.bsm{padding:5px 10px;font-size:10px}
+.bd2{background:rgba(255,77,109,.1);color:var(--danger);border:1px solid rgba(255,77,109,.25)}.bd2:hover{background:rgba(255,77,109,.18)}
+.br{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px;padding-top:18px;border-top:1px solid var(--border)}
+/* Missing */
+.ml{display:flex;flex-direction:column;gap:5px;margin-top:9px}
+.mi{display:flex;align-items:center;gap:8px;background:rgba(255,77,109,.05);border:1px solid rgba(255,77,109,.12);border-radius:5px;padding:7px 10px;font-size:10px}
+.mi .mk{color:var(--danger);flex:1}.mi .mt{font-size:9px;background:var(--border);padding:1px 5px;border-radius:3px;color:var(--muted)}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500}
+.bok{background:rgba(79,255,176,.1);color:var(--ok)}.bwarn{background:rgba(255,179,71,.1);color:var(--warn)}.bfail{background:rgba(255,77,109,.1);color:var(--danger)}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+#toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--accent);color:var(--accent);font-size:11px;padding:9px 14px;border-radius:var(--r);z-index:9999;opacity:0;transform:translateY(6px);transition:all .22s;pointer-events:none;box-shadow:0 4px 18px rgba(79,255,176,.1)}
+#toast.show{opacity:1;transform:translateY(0)}#toast.err{border-color:var(--danger);color:var(--danger)}
+@media(max-width:800px){.rg{grid-template-columns:1fr}.fr{grid-template-columns:1fr;gap:5px}.fs{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div><div class="logo">web3-mkt-<span>agents</span></div><div class="hm">Setup Dashboard — tokens in memory only, never sent anywhere</div></div>
+  <div class="hr">
+    <span class="vb">v0.1.0</span>
+    <span id="mode-badge" class="mb mb-l">● LOCAL MODE</span>
+    <span id="overall-badge" class="badge bwarn">⚠ incomplete</span>
+  </div>
+</header>
+<div class="pw">
+  <div class="pl"><span>SETUP PROGRESS</span><span id="ppct">0%</span></div>
+  <div class="pb"><div class="pf" id="pfill" style="width:0%"></div></div>
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="sw('status')">📋 Status <span class="tc" id="tc-s">0/0</span></button>
+  <button class="tab" onclick="sw('agents')">🤖 Agents <span class="tc">9</span></button>
+  <button class="tab" onclick="sw('models')">🔑 Model APIs</button>
+  <button class="tab" onclick="sw('integrations')">🔌 Integrations</button>
+  <button class="tab" onclick="sw('rag')">📝 RAG Editor <span class="tc" id="tc-rag">19</span></button>
+  <button class="tab" onclick="sw('export')">📤 Export</button>
+</div>
+
+<!-- STATUS -->
+<div class="panel active" id="panel-status">
+  <div id="miss-alert" class="alert aw" style="display:none"><span>⚠</span><div><div style="font-weight:600;margin-bottom:5px">Missing required tokens</div><div id="miss-txt"></div><div class="ml" id="miss-list"></div></div></div>
+  <div id="ok-alert" class="alert ao" style="display:none">✓ All required tokens configured. Ready to export.</div>
+  <div class="sh"><span class="sht">Checklist</span><div class="shl"></div></div>
+  <div class="cl2">
+    <div class="ci" id="chk-models"><div class="cd"></div><div class="ct">Core model APIs (Anthropic + OpenAI + MiniMax + Gemini)</div><span class="ca" onclick="sw('models')">Configure →</span></div>
+    <div class="ci" id="chk-slack"><div class="cd"></div><div class="ct">Slack bot + channel IDs</div><span class="ca" onclick="sw('integrations')">Configure →</span></div>
+    <div class="ci" id="chk-notion"><div class="cd"></div><div class="ct">Notion token</div><span class="ca" onclick="sw('integrations')">Configure →</span></div>
+    <div class="ci" id="chk-twitter"><div class="cd"></div><div class="ct">Twitter/X API keys</div><span class="ca" onclick="sw('integrations')">Configure →</span></div>
+    <div class="ci" id="chk-gateway"><div class="cd"></div><div class="ct">Gateway auth token</div><span class="ca" onclick="sw('integrations')">Set →</span></div>
+    <div class="ci" id="chk-rag"><div class="cd"></div><div class="ct">Core RAG files filled (brand-voice, kpi-targets, alert-thresholds)</div><span class="ca" onclick="sw('rag')">Edit →</span></div>
+    <div class="ci" id="chk-agents"><div class="cd"></div><div class="ct">At least 1 agent enabled</div><span class="ca" onclick="sw('agents')">Configure →</span></div>
+  </div>
+  <div class="sh" style="margin-top:26px"><span class="sht">GitHub Deploy</span><div class="shl"></div></div>
+  <div class="term"><button class="cpb" onclick="cpt(this)">copy</button><pre><span class="c2"># 1. Push to GitHub</span>
+<span class="c1">bash</span> scripts/init-github.sh <span class="c3">YOUR_GITHUB_USERNAME</span>
+
+<span class="c2"># 2. On VPS: clone + deploy</span>
+<span class="c1">git clone</span> https://github.com/NanRen01/mktagent3.git
+<span class="c1">cd</span> mktagent3 && <span class="c1">bash</span> scripts/deploy.sh
+
+<span class="c2"># 3. Start dashboard server for remote RAG editing</span>
+<span class="c1">python3</span> dashboard/server.py --port 8765 --token <span class="c3">YOUR_SECRET</span></pre></div>
+  <div class="sh" style="margin-top:18px"><span class="sht">Install Command</span><div class="shl"></div><span class="sht2">Send to OpenClaw agent</span></div>
+  <div class="term"><pre>Install this skill: https://github.com/<span class="c4">NanRen01</span>/mktagent3</pre></div>
+</div>
+
+<!-- AGENTS -->
+<div class="panel" id="panel-agents">
+  <div class="cb">
+    <div><div class="cl">Est. Monthly Cost</div><div class="cv" id="cost-v">$0</div></div>
+    <div><div style="font-size:11px;color:var(--muted)">vs. all-Claude-Opus: <span style="color:var(--danger);text-decoration:line-through">$400+/mo</span></div></div>
+    <div><div class="cl">Enabled</div><div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text)" id="ac-count">0/9</div></div>
+  </div>
+  <div class="ag" id="agent-grid"></div>
+</div>
+
+<!-- MODEL APIs -->
+<div class="panel" id="panel-models">
+  <div class="alert aw">⚠ Keys stay in this browser tab only. Never sent anywhere. Export when done.</div>
+  <div class="sh"><span class="sht">Anthropic</span><div class="shl"></div><span class="sht2">PM · Content · Finance</span></div>
+  <div class="card"><div class="fr"><div><div class="fl">ANTHROPIC_API_KEY <span class="req">required</span></div><div class="fd">claude.ai → Settings → API Keys</div></div><div class="fiw"><input type="password" id="ANTHROPIC_API_KEY" placeholder="sk-ant-api03-..." oninput="ofc(this)"/><button class="tv" onclick="tv('ANTHROPIC_API_KEY')">👁</button></div><div class="fs" id="st-ANTHROPIC_API_KEY">·</div></div></div>
+  <div class="sh"><span class="sht">OpenAI</span><div class="shl"></div><span class="sht2">Data · BD · Community</span></div>
+  <div class="card"><div class="fr"><div><div class="fl">OPENAI_API_KEY <span class="req">required</span></div><div class="fd">platform.openai.com → API Keys</div></div><div class="fiw"><input type="password" id="OPENAI_API_KEY" placeholder="sk-proj-..." oninput="ofc(this)"/><button class="tv" onclick="tv('OPENAI_API_KEY')">👁</button></div><div class="fs" id="st-OPENAI_API_KEY">·</div></div></div>
+  <div class="sh"><span class="sht">MiniMax</span><div class="shl"></div><span class="sht2">Social · Eco · Memory</span></div>
+  <div class="card"><div class="fr"><div><div class="fl">MINIMAX_API_KEY <span class="req">required</span></div><div class="fd">minimaxi.com → API Keys</div></div><div class="fiw"><input type="password" id="MINIMAX_API_KEY" placeholder="eyJ..." oninput="ofc(this)"/><button class="tv" onclick="tv('MINIMAX_API_KEY')">👁</button></div><div class="fs" id="st-MINIMAX_API_KEY">·</div></div></div>
+  <div class="sh"><span class="sht">Google Gemini</span><div class="shl"></div><span class="sht2">Security · Heartbeats</span></div>
+  <div class="card"><div class="fr"><div><div class="fl">GEMINI_API_KEY <span class="req">required</span></div><div class="fd">aistudio.google.com → Get API key</div></div><div class="fiw"><input type="password" id="GEMINI_API_KEY" placeholder="AIzaSy..." oninput="ofc(this)"/><button class="tv" onclick="tv('GEMINI_API_KEY')">👁</button></div><div class="fs" id="st-GEMINI_API_KEY">·</div></div></div>
+</div>
+
+<!-- INTEGRATIONS -->
+<div class="panel" id="panel-integrations">
+  <div class="sh"><span class="sht">Slack</span><div class="shl"></div><span class="sht2">Approvals · Alerts · Reports</span></div>
+  <div class="card">
+    <div class="fr"><div><div class="fl">SLACK_BOT_TOKEN <span class="req">required</span></div><div class="fd">api.slack.com/apps → OAuth Tokens</div></div><div class="fiw"><input type="password" id="SLACK_BOT_TOKEN" placeholder="xoxb-..." oninput="ofc(this)"/><button class="tv" onclick="tv('SLACK_BOT_TOKEN')">👁</button></div><div class="fs" id="st-SLACK_BOT_TOKEN">·</div></div>
+    <div class="fr"><div><div class="fl">SLACK_APPROVALS_CHANNEL_ID <span class="req">required</span></div><div class="fd">Right-click channel → Copy link</div></div><div class="fiw"><input type="text" id="SLACK_APPROVALS_CHANNEL_ID" placeholder="C0123456789" oninput="ofc(this)"/></div><div class="fs" id="st-SLACK_APPROVALS_CHANNEL_ID">·</div></div>
+    <div class="fr"><div><div class="fl">SLACK_WEEKLY_REPORT_CHANNEL_ID <span class="req">required</span></div><div class="fd">Monday reports channel</div></div><div class="fiw"><input type="text" id="SLACK_WEEKLY_REPORT_CHANNEL_ID" placeholder="C0123456789" oninput="ofc(this)"/></div><div class="fs" id="st-SLACK_WEEKLY_REPORT_CHANNEL_ID">·</div></div>
+    <div class="fr"><div><div class="fl">SLACK_ALERTS_CHANNEL_ID <span class="req">required</span></div><div class="fd">System alerts channel</div></div><div class="fiw"><input type="text" id="SLACK_ALERTS_CHANNEL_ID" placeholder="C0123456789" oninput="ofc(this)"/></div><div class="fs" id="st-SLACK_ALERTS_CHANNEL_ID">·</div></div>
+    <div class="fr"><div><div class="fl">SLACK_SECURITY_CHANNEL_ID <span class="opt">optional</span></div><div class="fd">Security alerts</div></div><div class="fiw"><input type="text" id="SLACK_SECURITY_CHANNEL_ID" placeholder="C..." oninput="ofc(this)"/></div><div class="fs" id="st-SLACK_SECURITY_CHANNEL_ID">·</div></div>
+    <div class="fr"><div><div class="fl">SLACK_BD_CHANNEL_ID <span class="opt">optional</span></div><div class="fd">BD pipeline updates</div></div><div class="fiw"><input type="text" id="SLACK_BD_CHANNEL_ID" placeholder="C..." oninput="ofc(this)"/></div><div class="fs" id="st-SLACK_BD_CHANNEL_ID">·</div></div>
+    <div class="fr"><div><div class="fl">SLACK_FINANCE_CHANNEL_ID <span class="opt">optional</span></div><div class="fd">Finance alerts</div></div><div class="fiw"><input type="text" id="SLACK_FINANCE_CHANNEL_ID" placeholder="C..." oninput="ofc(this)"/></div><div class="fs" id="st-SLACK_FINANCE_CHANNEL_ID">·</div></div>
+  </div>
+  <div class="sh"><span class="sht">Telegram Bots</span><div class="shl"></div><span class="sht2">One bot per agent via @BotFather</span></div>
+  <div class="card" id="tg-card"></div>
+  <div class="sh"><span class="sht">Notion</span><div class="shl"></div><span class="sht2">Tasks · BD · Finance</span></div>
+  <div class="card">
+    <div class="fr"><div><div class="fl">NOTION_TOKEN <span class="req">required</span></div><div class="fd">notion.so/profile/integrations</div></div><div class="fiw"><input type="password" id="NOTION_TOKEN" placeholder="secret_..." oninput="ofc(this)"/><button class="tv" onclick="tv('NOTION_TOKEN')">👁</button></div><div class="fs" id="st-NOTION_TOKEN">·</div></div>
+    <div class="fr"><div><div class="fl">NOTION_TASK_DB_ID <span class="req">required</span></div><div class="fd">Task database ID from URL</div></div><div class="fiw"><input type="text" id="NOTION_TASK_DB_ID" placeholder="32-char ID" oninput="ofc(this)"/></div><div class="fs" id="st-NOTION_TASK_DB_ID">·</div></div>
+    <div class="fr"><div><div class="fl">NOTION_BD_DB_ID <span class="opt">optional</span></div><div class="fd">BD pipeline DB</div></div><div class="fiw"><input type="text" id="NOTION_BD_DB_ID" placeholder="" oninput="ofc(this)"/></div><div class="fs" id="st-NOTION_BD_DB_ID">·</div></div>
+    <div class="fr"><div><div class="fl">NOTION_FINANCE_DB_ID <span class="opt">optional</span></div><div class="fd">Finance invoice DB</div></div><div class="fiw"><input type="text" id="NOTION_FINANCE_DB_ID" placeholder="" oninput="ofc(this)"/></div><div class="fs" id="st-NOTION_FINANCE_DB_ID">·</div></div>
+  </div>
+  <div class="sh"><span class="sht">Twitter / X</span><div class="shl"></div><span class="sht2">Social · Data · Security</span></div>
+  <div class="card">
+    <div class="fr"><div><div class="fl">TWITTER_BEARER_TOKEN <span class="req">required</span></div><div class="fd">developer.twitter.com → Project → Keys</div></div><div class="fiw"><input type="password" id="TWITTER_BEARER_TOKEN" placeholder="AAAA..." oninput="ofc(this)"/><button class="tv" onclick="tv('TWITTER_BEARER_TOKEN')">👁</button></div><div class="fs" id="st-TWITTER_BEARER_TOKEN">·</div></div>
+    <div class="fr"><div><div class="fl">TWITTER_API_KEY <span class="req">required</span></div><div class="fd">Consumer key</div></div><div class="fiw"><input type="password" id="TWITTER_API_KEY" placeholder="" oninput="ofc(this)"/><button class="tv" onclick="tv('TWITTER_API_KEY')">👁</button></div><div class="fs" id="st-TWITTER_API_KEY">·</div></div>
+    <div class="fr"><div><div class="fl">TWITTER_API_SECRET <span class="req">required</span></div><div class="fd">Consumer secret</div></div><div class="fiw"><input type="password" id="TWITTER_API_SECRET" placeholder="" oninput="ofc(this)"/><button class="tv" onclick="tv('TWITTER_API_SECRET')">👁</button></div><div class="fs" id="st-TWITTER_API_SECRET">·</div></div>
+    <div class="fr"><div><div class="fl">TWITTER_ACCESS_TOKEN <span class="req">required</span></div><div class="fd">Access token</div></div><div class="fiw"><input type="password" id="TWITTER_ACCESS_TOKEN" placeholder="" oninput="ofc(this)"/><button class="tv" onclick="tv('TWITTER_ACCESS_TOKEN')">👁</button></div><div class="fs" id="st-TWITTER_ACCESS_TOKEN">·</div></div>
+    <div class="fr"><div><div class="fl">TWITTER_ACCESS_SECRET <span class="req">required</span></div><div class="fd">Access token secret</div></div><div class="fiw"><input type="password" id="TWITTER_ACCESS_SECRET" placeholder="" oninput="ofc(this)"/><button class="tv" onclick="tv('TWITTER_ACCESS_SECRET')">👁</button></div><div class="fs" id="st-TWITTER_ACCESS_SECRET">·</div></div>
+  </div>
+  <div class="sh"><span class="sht">Other APIs</span><div class="shl"></div></div>
+  <div class="card">
+    <div class="fr"><div><div class="fl">COINGECKO_API_KEY <span class="opt">optional</span></div><div class="fd">coingecko.com → Developer Dashboard</div></div><div class="fiw"><input type="password" id="COINGECKO_API_KEY" placeholder="CG-..." oninput="ofc(this)"/><button class="tv" onclick="tv('COINGECKO_API_KEY')">👁</button></div><div class="fs" id="st-COINGECKO_API_KEY">·</div></div>
+    <div class="fr"><div><div class="fl">SERPAPI_KEY <span class="opt">optional</span></div><div class="fd">serpapi.com</div></div><div class="fiw"><input type="password" id="SERPAPI_KEY" placeholder="" oninput="ofc(this)"/><button class="tv" onclick="tv('SERPAPI_KEY')">👁</button></div><div class="fs" id="st-SERPAPI_KEY">·</div></div>
+    <div class="fr"><div><div class="fl">APOLLO_API_KEY <span class="opt">optional</span></div><div class="fd">apollo.io → Settings → API Keys</div></div><div class="fiw"><input type="password" id="APOLLO_API_KEY" placeholder="" oninput="ofc(this)"/><button class="tv" onclick="tv('APOLLO_API_KEY')">👁</button></div><div class="fs" id="st-APOLLO_API_KEY">·</div></div>
+    <div class="fr"><div><div class="fl">DISCORD_BOT_TOKEN <span class="opt">optional</span></div><div class="fd">discord.com/developers → Bot</div></div><div class="fiw"><input type="password" id="DISCORD_BOT_TOKEN" placeholder="MTI..." oninput="ofc(this)"/><button class="tv" onclick="tv('DISCORD_BOT_TOKEN')">👁</button></div><div class="fs" id="st-DISCORD_BOT_TOKEN">·</div></div>
+    <div class="fr"><div><div class="fl">LINKEDIN_ACCESS_TOKEN <span class="opt">optional</span></div><div class="fd">linkedin.com/developers</div></div><div class="fiw"><input type="password" id="LINKEDIN_ACCESS_TOKEN" placeholder="" oninput="ofc(this)"/><button class="tv" onclick="tv('LINKEDIN_ACCESS_TOKEN')">👁</button></div><div class="fs" id="st-LINKEDIN_ACCESS_TOKEN">·</div></div>
+    <div class="fr"><div><div class="fl">SENDGRID_API_KEY <span class="opt">optional</span></div><div class="fd">app.sendgrid.com → API Keys</div></div><div class="fiw"><input type="password" id="SENDGRID_API_KEY" placeholder="SG.." oninput="ofc(this)"/><button class="tv" onclick="tv('SENDGRID_API_KEY')">👁</button></div><div class="fs" id="st-SENDGRID_API_KEY">·</div></div>
+  </div>
+  <div class="sh"><span class="sht">Gateway</span><div class="shl"></div></div>
+  <div class="card">
+    <div class="fr"><div><div class="fl">GATEWAY_AUTH_TOKEN <span class="req">required</span></div><div class="fd">Random secret for local gateway</div></div><div class="fiw"><input type="password" id="GATEWAY_AUTH_TOKEN" placeholder="auto-generate recommended" oninput="ofc(this)"/><button class="tv" onclick="tv('GATEWAY_AUTH_TOKEN')">👁</button></div><div class="fs" id="st-GATEWAY_AUTH_TOKEN">·</div></div>
+    <div style="margin-top:10px"><button class="btn bs bsm" onclick="genGw()">⚡ Generate Random Token</button></div>
+  </div>
+</div>
+
+<!-- RAG EDITOR -->
+<div class="panel" id="panel-rag">
+  <div id="server-bar" class="alert ai" style="margin-bottom:14px">
+    <span>ℹ</span>
+    <div>
+      <strong>Local mode</strong> — editing in browser memory. To save directly to VPS, run <code style="background:rgba(255,255,255,.06);padding:1px 5px;border-radius:3px">python3 dashboard/server.py --port 8765 --token SECRET</code> on your VPS, then connect below.
+      <div style="margin-top:9px;display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+        <input type="text" id="srv-url" placeholder="http://localhost:8765" style="width:200px;font-size:11px"/>
+        <input type="password" id="srv-tok" placeholder="dashboard token" style="width:140px;font-size:11px"/>
+        <button class="btn bs bsm" onclick="connSrv()">Connect VPS</button>
+        <button class="btn bs bsm" onclick="discSrv()" id="disc-btn" style="display:none">Disconnect</button>
+        <span id="srv-status" style="font-size:10px;color:var(--muted)"></span>
+      </div>
+    </div>
+  </div>
+  <div class="rg">
+    <div class="rl">
+      <div class="rlh">RAG FILES — 19 total</div>
+      <div class="rl-scroll" id="rag-list"></div>
+    </div>
+    <div class="re" id="rag-editor">
+      <div class="rempty" id="rag-empty">
+        <div style="font-size:28px">📝</div>
+        <div>Select a file to edit</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Changes auto-save to browser memory<br>Connect VPS to write directly to server</div>
+      </div>
+      <div id="rag-inner" style="display:none;flex:1;flex-direction:column">
+        <div class="reh">
+          <div><div class="ret" id="rag-title">—</div><div class="rem2" id="rag-meta">—</div></div>
+          <div class="rea">
+            <button class="btn bs bsm" onclick="resetTpl()">↺ Reset</button>
+            <button class="btn bp bsm" id="save-btn" onclick="saveRAG()">💾 Save</button>
+          </div>
+        </div>
+        <textarea class="rta" id="rag-ta" placeholder="Loading..." oninput="onRChange()"></textarea>
+        <div class="ref">
+          <span id="rag-ph" style="font-size:10px"></span>
+          <span id="rag-ss" style="font-size:10px;color:var(--muted)">unsaved</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="br">
+    <button class="btn bp" onclick="exportRAG()">⬇ Export RAG bundle</button>
+    <button class="btn bs" onclick="document.getElementById('rag-imp').click()">⬆ Import .md file</button>
+    <input type="file" id="rag-imp" accept=".md" style="display:none" onchange="importRAG(event)"/>
+  </div>
+</div>
+
+<!-- EXPORT -->
+<div class="panel" id="panel-export">
+  <div class="sh"><span class="sht">Export .env</span><div class="shl"></div></div>
+  <div class="alert ai">ℹ Place at <strong>~/.openclaw/.env</strong> on VPS. Never commit to GitHub.</div>
+  <div style="margin-bottom:13px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn bp" onclick="dlEnv()">⬇ Download .env</button>
+    <button class="btn bs" onclick="cpyEnv()">📋 Copy</button>
+    <button class="btn bd2" onclick="clrAll()">🗑 Clear all</button>
+  </div>
+  <div class="term"><button class="cpb" onclick="cpt(this)">copy</button><pre id="env-pre" style="color:var(--muted);font-size:11px;line-height:1.8"></pre></div>
+  <div class="sh" style="margin-top:22px"><span class="sht">Security</span><div class="shl"></div></div>
+  <div class="cl2">
+    <div class="ci done"><div class="cd"></div><div class="ct">.env is in .gitignore — will NOT be committed to GitHub</div></div>
+    <div class="ci done"><div class="cd"></div><div class="ct">deploy.sh sets openclaw.json permissions to 600</div></div>
+    <div class="ci done"><div class="cd"></div><div class="ct">server.py binds to 127.0.0.1 — not exposed to internet</div></div>
+    <div class="ci warn"><div class="cd"></div><div class="ct">Rotate all API keys immediately if accidentally committed</div></div>
+    <div class="ci warn"><div class="cd"></div><div class="ct">Use a strong token when running server.py</div></div>
+  </div>
+</div>
+
+</div>
+<div id="toast"></div>
+
+<script>
+const AGENTS=[{id:'pm',emoji:'🧠',name:'PM Agent',role:'Routes tasks, monitors, reports',model:'claude-sonnet-4-6',cost:[9,19],color:'#4fffb0',req:true},{id:'social',emoji:'📣',name:'Social Agent',role:'Twitter/X, LinkedIn, memes, trends',model:'minimax-m2.5',cost:[1,2],color:'#ff6b9d'},{id:'content',emoji:'✍️',name:'Content Agent',role:'Blog, video scripts, design briefs',model:'claude-sonnet-4-6',cost:[6,12],color:'#5b9cf6'},{id:'data',emoji:'📊',name:'Data Agent',role:'Token, competitor, SEO, analytics',model:'gpt-4.1-nano',cost:[2,3],color:'#a78bfa'},{id:'bd',emoji:'🤝',name:'BD Agent',role:'Prospects, cold email, proposals',model:'gpt-4.1',cost:[4,7],color:'#ffb347'},{id:'community',emoji:'💬',name:'Community Agent',role:'Discord/TG sentiment, FAQ, crisis',model:'gpt-4o-mini',cost:[2,4],color:'#0dffd1'},{id:'eco',emoji:'🌐',name:'Eco Agent',role:'Event announcements, ecosystem BD',model:'minimax-m2.5',cost:[1,3],color:'#f97316'},{id:'finance',emoji:'💰',name:'Finance Agent',role:'Invoice logging, budget, contracts',model:'claude-sonnet-4-6',cost:[3,6],color:'#4ade80'},{id:'security',emoji:'🛡️',name:'Security Agent',role:'Impersonation, phishing, API audits',model:'gemini-flash-lite',cost:[1,2],color:'#f43f5e'}];
+const REQF=['ANTHROPIC_API_KEY','OPENAI_API_KEY','MINIMAX_API_KEY','GEMINI_API_KEY','SLACK_BOT_TOKEN','SLACK_APPROVALS_CHANNEL_ID','SLACK_WEEKLY_REPORT_CHANNEL_ID','SLACK_ALERTS_CHANNEL_ID','NOTION_TOKEN','NOTION_TASK_DB_ID','TWITTER_BEARER_TOKEN','TWITTER_API_KEY','TWITTER_API_SECRET','TWITTER_ACCESS_TOKEN','TWITTER_ACCESS_SECRET','GATEWAY_AUTH_TOKEN'];
+const FAGM={ANTHROPIC_API_KEY:['pm','content','finance'],OPENAI_API_KEY:['data','bd','community'],MINIMAX_API_KEY:['social','eco'],GEMINI_API_KEY:['security'],SLACK_BOT_TOKEN:['all'],NOTION_TOKEN:['pm','bd','finance'],TWITTER_BEARER_TOKEN:['social','data','security']};
+const RAGF=[{f:'brand-voice.md',l:'Brand Voice',a:['social','content','eco','community'],core:true},{f:'kpi-targets.md',l:'KPI Targets',a:['pm','data'],core:true},{f:'alert-thresholds.md',l:'Alert Thresholds',a:['data'],core:true},{f:'crisis-sop.md',l:'Crisis SOP',a:['pm','community']},{f:'competitor-intel.md',l:'Competitor Intel',a:['data']},{f:'seo-keywords.md',l:'SEO Keywords',a:['data']},{f:'community-faq.md',l:'Community FAQ',a:['community']},{f:'community-moderator-guidelines.md',l:'Moderator Guidelines',a:['community']},{f:'channel-config.md',l:'Channel Config',a:['community']},{f:'bd-icp.md',l:'BD ICP',a:['bd']},{f:'bd-email-templates.md',l:'BD Email Templates',a:['bd']},{f:'bd-event-targets.md',l:'BD Event Targets',a:['bd']},{f:'security-impersonation-keywords.md',l:'Impersonation Keywords',a:['security']},{f:'security-phishing-patterns.md',l:'Phishing Patterns',a:['security']},{f:'finance-budget-plan.md',l:'Budget Plan',a:['finance']},{f:'finance-vendor-list.md',l:'Vendor List',a:['finance']},{f:'eco-icp.md',l:'Eco ICP',a:['eco']},{f:'eco-event-formats.md',l:'Eco Event Formats',a:['eco']},{f:'content-style-guide.md',l:'Content Style Guide',a:['content']}];
+
+let enabled=new Set(['pm','social','content','data']);
+let ragData={};
+let activeF=null;
+let srvURL=null,srvTok=null,srvOK=false;
+let dirty=false;
+
+function init(){buildAgents();buildTG();buildRAGList();upAll();loadTemplates();}
+async function loadTemplates(){for(const r of RAGF){try{const res=await fetch('../rag-templates/'+r.f);if(res.ok&&!ragData[r.f])ragData[r.f]=await res.text();}catch(e){}}buildRAGList();}
+function sw(id){const IDS=['status','agents','models','integrations','rag','export'];document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',IDS[i]===id));document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.getElementById('panel-'+id).classList.add('active');if(id==='export')upEnv();}
+function buildAgents(){document.getElementById('agent-grid').innerHTML=AGENTS.map(a=>`<div class="ac ${enabled.has(a.id)?'on':''}" id="ac-${a.id}" style="--ac-color:${a.color}" onclick="togA('${a.id}')"><button class="at"></button><span class="ae">${a.emoji}</span><div class="an">${a.name}</div><div class="ar">${a.role}</div><div class="am">${a.model}</div></div>`).join('');}
+function togA(id){if(AGENTS.find(a=>a.id===id)?.req){showToast('PM Agent is required');return;}enabled.has(id)?enabled.delete(id):enabled.add(id);document.getElementById('ac-'+id).classList.toggle('on',enabled.has(id));upAll();}
+function buildTG(){document.getElementById('tg-card').innerHTML=AGENTS.map((a,i)=>`<div class="fr"><div><div class="fl">TG_TOKEN_${a.id.toUpperCase()} <span class="opt">optional</span></div><div class="fd">${a.emoji} ${a.name}</div></div><div class="fiw"><input type="password" id="TG_TOKEN_${a.id.toUpperCase()}" placeholder="123456:ABC-..." oninput="ofc(this)"/><button class="tv" onclick="tv('TG_TOKEN_${a.id.toUpperCase()}')">👁</button></div><div class="fs" id="st-TG_TOKEN_${a.id.toUpperCase()}">·</div></div>`).join('');}
+function buildRAGList(){document.getElementById('rag-list').innerHTML=RAGF.map(r=>{const has=!!ragData[r.f];const ok=has&&!ragData[r.f].includes('[YOUR PROJECT NAME]')&&!ragData[r.f].includes('[your-token-id]')&&!ragData[r.f].includes('[YOUR TOKEN SYMBOL');const cls=ok?'filled':has?'template':'';return`<div class="ri ${cls} ${activeF===r.f?'active':''}" onclick="openRAG('${r.f}')"><div class="rd"></div><div><div class="rfn">${r.l}${r.core?' <span style="color:var(--danger);font-size:8px">●core</span>':''}</div><div class="rws">${r.a.map(id=>AGENTS.find(x=>x.id===id)?.emoji||'').join('')} ${r.a.join(', ')}</div></div></div>`}).join('');}
+async function openRAG(fn){activeF=fn;buildRAGList();const r=RAGF.find(x=>x.f===fn);let c=ragData[fn];if(!c&&srvOK){try{const d=await apiFetch('/api/rag/read/'+fn);if(d.content){c=d.content;ragData[fn]=c;}}catch(e){}}if(!c)c=`# ${r.l}\n\n<!-- Fill with your project data -->\n`;ragData[fn]=c;document.getElementById('rag-empty').style.display='none';const inn=document.getElementById('rag-inner');inn.style.display='flex';inn.style.flexDirection='column';document.getElementById('rag-title').textContent=r.l;document.getElementById('rag-meta').textContent=`${fn} → ${r.a.join(', ')}`;document.getElementById('rag-ta').value=c;updPH(c);dirty=false;updSS();}
+function onRChange(){const c=document.getElementById('rag-ta').value;ragData[activeF]=c;dirty=true;updPH(c);updSS();upAll();}
+function updPH(c){const m=(c.match(/\[[^\]]{1,60}\]/g)||[]);const el=document.getElementById('rag-ph');if(m.length){el.style.color='var(--warn)';el.textContent=`⚠ ${m.length} placeholder${m.length>1?'s':''} remaining`;}else{el.style.color='var(--ok)';el.textContent='✓ No placeholders';}}
+function updSS(){const el=document.getElementById('rag-ss');if(!activeF)return;if(srvOK){el.textContent=dirty?'● unsaved — click Save to write to VPS':'✓ saved to VPS';el.style.color=dirty?'var(--warn)':'var(--ok)';}else{el.textContent=dirty?'● in memory — export to save':'✓ in memory';el.style.color=dirty?'var(--blue)':'var(--muted)';}}
+async function saveRAG(){if(!activeF)return;const c=document.getElementById('rag-ta').value;ragData[activeF]=c;if(srvOK){try{await apiFetch('/api/rag/write/'+activeF,'POST',{content:c});dirty=false;showToast('Saved to VPS ✓');updSS();buildRAGList();}catch(e){showToast('Save failed: '+e.message,true);}}else{dirty=false;showToast('Saved in memory — export to get files');updSS();buildRAGList();}}
+function resetTpl(){if(!activeF)return;if(!confirm('Reset to original template?'))return;delete ragData[activeF];openRAG(activeF);}
+async function connSrv(){const url=(document.getElementById('srv-url').value||'').trim().replace(/\/$/,'');const tok=document.getElementById('srv-tok').value.trim();if(!url){showToast('Enter server URL',true);return;}try{const res=await fetch(url+'/api/rag/list',{headers:tok?{'X-Dashboard-Token':tok}:{}});if(!res.ok)throw new Error('HTTP '+res.status);srvURL=url;srvTok=tok;srvOK=true;document.getElementById('mode-badge').textContent='● VPS CONNECTED';document.getElementById('mode-badge').className='mb mb-s';document.getElementById('server-bar').className='alert ao';document.getElementById('disc-btn').style.display='';document.getElementById('srv-status').textContent='✓ '+url;showToast('Connected ✓');}catch(e){showToast('Failed: '+e.message,true);}}
+function discSrv(){srvURL=null;srvTok=null;srvOK=false;document.getElementById('mode-badge').textContent='● LOCAL MODE';document.getElementById('mode-badge').className='mb mb-l';document.getElementById('server-bar').className='alert ai';document.getElementById('disc-btn').style.display='none';document.getElementById('srv-status').textContent='';showToast('Disconnected');}
+async function apiFetch(p,m='GET',b=null){const o={method:m,headers:{'Content-Type':'application/json'}};if(srvTok)o.headers['X-Dashboard-Token']=srvTok;if(b)o.body=JSON.stringify(b);const r=await fetch(srvURL+p,o);if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}
+function exportRAG(){let s='';let n=0;RAGF.forEach(r=>{if(ragData[r.f]){s+=`\n${'='.repeat(58)}\n# FILE: ${r.f}\n${'='.repeat(58)}\n${ragData[r.f]}\n`;n++;}});if(!n){showToast('No files to export',true);return;}const b=new Blob([s],{type:'text/plain'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='rag-bundle.txt';a.click();URL.revokeObjectURL(u);showToast(`Exported ${n} files`);}
+function importRAG(e){const f=e.target.files[0];if(!f)return;const fr2=new FileReader();fr2.onload=ev=>{ragData[f.name]=ev.target.result;const r=RAGF.find(x=>x.f===f.name);if(r){openRAG(f.name);showToast('Imported '+f.name);}else showToast('Unknown: '+f.name,true);buildRAGList();};fr2.readAsText(f);e.target.value='';}
+function ofc(el){const v=el.value.trim();const s=document.getElementById('st-'+el.id);if(s){s.textContent=v?'✓':'·';s.style.color=v?'var(--ok)':'var(--muted)';}upAll();}
+function tv(id){const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';}
+function genGw(){const a=new Uint8Array(24);crypto.getRandomValues(a);const t=Array.from(a).map(b=>b.toString(16).padStart(2,'0')).join('');const el=document.getElementById('GATEWAY_AUTH_TOKEN');el.value=t;el.type='text';ofc(el);showToast('Token generated');}
+function gv(id){const el=document.getElementById(id);return el?el.value.trim():'';}
+function upAll(){let lo=0,hi=0;enabled.forEach(id=>{const a=AGENTS.find(x=>x.id===id);if(a){lo+=a.cost[0];hi+=a.cost[1];}});document.getElementById('cost-v').textContent=`$${lo}–${hi}`;document.getElementById('ac-count').textContent=`${enabled.size}/9`;const tot=REQF.length,fil=REQF.filter(f=>gv(f)).length,pct=Math.round(fil/tot*100);document.getElementById('pfill').style.width=pct+'%';document.getElementById('ppct').textContent=pct+'%';const ob=document.getElementById('overall-badge');if(pct===100){ob.textContent='✓ ready';ob.className='badge bok';}else if(pct>=50){ob.textContent=`⚠ ${pct}%`;ob.className='badge bwarn';}else{ob.textContent=`✗ ${pct}%`;ob.className='badge bfail';}document.getElementById('tc-s').textContent=`${fil}/${tot}`;const coreOK=['brand-voice.md','kpi-targets.md','alert-thresholds.md'].every(f=>ragData[f]&&!ragData[f].includes('[YOUR PROJECT NAME]')&&!ragData[f].includes('[your-token-id]'));const chks={'chk-models':gv('ANTHROPIC_API_KEY')&&gv('OPENAI_API_KEY')&&gv('MINIMAX_API_KEY')&&gv('GEMINI_API_KEY'),'chk-slack':gv('SLACK_BOT_TOKEN')&&gv('SLACK_APPROVALS_CHANNEL_ID'),'chk-notion':!!gv('NOTION_TOKEN'),'chk-twitter':gv('TWITTER_BEARER_TOKEN')&&gv('TWITTER_API_KEY'),'chk-gateway':!!gv('GATEWAY_AUTH_TOKEN'),'chk-rag':coreOK,'chk-agents':enabled.size>0};Object.entries(chks).forEach(([id,ok])=>{const el=document.getElementById(id);if(el)el.className='ci '+(ok?'done':'');});const miss=REQF.filter(f=>!gv(f));document.getElementById('miss-alert').style.display=miss.length?'flex':'none';document.getElementById('ok-alert').style.display=miss.length?'none':'flex';if(miss.length){document.getElementById('miss-txt').textContent=`${miss.length} token${miss.length>1?'s':''} missing:`;document.getElementById('miss-list').innerHTML=miss.slice(0,5).map(f=>`<div class="mi"><span class="mk">${f}</span><span class="mt">${(FAGM[f]||['gateway']).join(', ')}</span></div>`).join('')+(miss.length>5?`<div style="font-size:10px;color:var(--muted);margin-top:3px">+${miss.length-5} more...</div>`:'');}}
+function upEnv(){const sec=[['# === MODEL APIs ===',['ANTHROPIC_API_KEY','OPENAI_API_KEY','MINIMAX_API_KEY','GEMINI_API_KEY']],['# === GATEWAY ===',['GATEWAY_AUTH_TOKEN']],['# === SLACK ===',['SLACK_BOT_TOKEN','SLACK_APPROVALS_CHANNEL_ID','SLACK_WEEKLY_REPORT_CHANNEL_ID','SLACK_ALERTS_CHANNEL_ID','SLACK_SECURITY_CHANNEL_ID','SLACK_BD_CHANNEL_ID','SLACK_FINANCE_CHANNEL_ID']],['# === TELEGRAM BOTS ===',AGENTS.map(a=>`TG_TOKEN_${a.id.toUpperCase()}`)],['# === NOTION ===',['NOTION_TOKEN','NOTION_TASK_DB_ID','NOTION_BD_DB_ID','NOTION_FINANCE_DB_ID']],['# === TWITTER/X ===',['TWITTER_BEARER_TOKEN','TWITTER_API_KEY','TWITTER_API_SECRET','TWITTER_ACCESS_TOKEN','TWITTER_ACCESS_SECRET']],['# === OTHER APIs ===',['COINGECKO_API_KEY','SERPAPI_KEY','APOLLO_API_KEY','DISCORD_BOT_TOKEN','LINKEDIN_ACCESS_TOKEN','SENDGRID_API_KEY']]];const lines=['# web3-mkt-agents .env','# Generated by dashboard','# Place at: ~/.openclaw/.env',''];sec.forEach(([h,fs])=>{lines.push(h);fs.forEach(f=>{const v=gv(f);lines.push(v?`${f}=${v}`:`# ${f}=`);});lines.push('');});document.getElementById('env-pre').textContent=lines.join('\n');}
+function dlEnv(){upEnv();const b=new Blob([document.getElementById('env-pre').textContent],{type:'text/plain'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='.env';a.click();URL.revokeObjectURL(u);showToast('.env downloaded');}
+function cpyEnv(){upEnv();navigator.clipboard.writeText(document.getElementById('env-pre').textContent).then(()=>showToast('Copied'));}
+function clrAll(){if(!confirm('Clear all tokens?'))return;document.querySelectorAll('input').forEach(i=>{if(i.type!=='file')i.value='';});document.querySelectorAll('[id^="st-"]').forEach(s=>{s.textContent='·';s.style.color='var(--muted)';});upAll();showToast('Cleared');}
+function cpt(btn){navigator.clipboard.writeText(btn.nextElementSibling.textContent).then(()=>{btn.textContent='copied!';btn.classList.add('cok');setTimeout(()=>{btn.textContent='copy';btn.classList.remove('cok');},2000);});}
+function showToast(msg,err=false){const t=document.getElementById('toast');t.textContent=msg;t.className='show'+(err?' err':'');setTimeout(()=>t.className='',2400);}
+init();
+</script>
+</body>
+</html>
