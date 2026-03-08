@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Mission Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+
+:root{--bg:#080a0e;--s1:#0e1118;--s2:#141820;--s3:#1c2230;--bd:#1e2535;--bd2:#28334a;--tx:#dce4f0;--tx2:#7a8aaa;--mu:#3a4560;--gold:#e8b84b;--gold-d:rgba(232,184,75,.1);--gold-b:rgba(232,184,75,.25);--cyan:#3dd6c8;--cyan-d:rgba(61,214,200,.08);--grn:#2dd4a0;--grn-d:rgba(45,212,160,.1);--red:#f05d6e;--red-d:rgba(240,93,110,.1);--blu:#5b9cf6;--pur:#9b7ff4;--r:10px;--fm:'IBM Plex Mono',monospace;--fs:'IBM Plex Sans',sans-serif;--fd:'Syne',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--fs);background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;line-height:1.5}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.04) 3px,rgba(0,0,0,.04) 4px);pointer-events:none;z-index:9998}
+
+/* ONBOARDING */
+#ob-overlay{position:fixed;inset:0;background:rgba(8,10,14,.97);z-index:9000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.ob-wrap{width:640px;max-height:90vh;overflow-y:auto;padding:20px}
+.ob-logo{font-family:var(--fd);font-size:11px;font-weight:600;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:20px}
+.ob-title{font-family:var(--fd);font-size:36px;font-weight:700;line-height:1.1;margin-bottom:12px}
+.ob-title span{color:var(--gold)}
+.ob-sub{font-size:14px;color:var(--tx2);line-height:1.7}
+.ob-steps{display:flex;gap:4px;margin:32px 0 40px}
+.ob-step{height:3px;flex:1;background:var(--bd);border-radius:2px;transition:background .3s}
+.ob-step.active{background:var(--gold)}.ob-step.done{background:var(--grn)}
+.ob-sec-title{font-family:var(--fd);font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin:20px 0 12px;display:flex;align-items:center;gap:8px}
+.ob-sec-title::after{content:'';flex:1;height:1px;background:var(--bd)}
+.ob-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--tx2);margin-bottom:5px}
+.ob-input{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:10px 14px;font-family:var(--fm);font-size:13px;color:var(--tx);outline:none;transition:border-color .2s;margin-bottom:12px}
+.ob-input:focus{border-color:var(--gold)}
+.ob-input::placeholder{color:var(--mu)}
+.ob-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ob-agents{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.ob-agent{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:10px}
+.ob-agent.sel{border-color:var(--gold);background:var(--gold-d)}
+.ob-agent.req{border-color:rgba(232,184,75,.3);cursor:default}
+.ob-agent-name{font-size:12px;font-weight:600}.ob-agent-role{font-size:10px;color:var(--tx2);margin-top:1px}
+.ob-nav{display:flex;justify-content:space-between;align-items:center;margin-top:40px;padding-top:24px;border-top:1px solid var(--bd)}
+.ob-skip{font-size:12px;color:var(--mu);cursor:pointer;transition:color .2s}.ob-skip:hover{color:var(--tx2)}
+.ob-page{display:none}.ob-page.active{display:block}
+.btn{display:inline-flex;align-items:center;gap:6px;font-family:var(--fs);font-size:12px;font-weight:600;padding:8px 18px;border-radius:8px;border:none;cursor:pointer;transition:all .15s;letter-spacing:.02em}
+.btn-primary{background:var(--gold);color:#080a0e}.btn-primary:hover{background:#f0c55a;box-shadow:0 0 16px rgba(232,184,75,.25)}
+.btn-ghost{background:transparent;color:var(--tx2);border:1px solid var(--bd)}.btn-ghost:hover{border-color:var(--tx2);color:var(--tx)}
+.btn-danger{background:var(--red-d);color:var(--red);border:1px solid rgba(240,93,110,.2)}.btn-danger:hover{background:rgba(240,93,110,.2)}
+.btn-sm{padding:5px 12px;font-size:11px}.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.btn-ob{font-family:var(--fd);font-size:13px;font-weight:600;letter-spacing:.06em;padding:12px 32px;border-radius:var(--r);border:none;cursor:pointer;transition:all .2s}
+.btn-ob-ghost{background:transparent;color:var(--tx2);border:1px solid var(--bd)}.btn-ob-ghost:hover{border-color:var(--tx2);color:var(--tx)}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;background:rgba(8,10,14,.92);backdrop-filter:blur(24px);border-bottom:1px solid var(--bd);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:52px;gap:20px}
+.logo-wrap{display:flex;align-items:center;gap:12px;cursor:pointer}
+.logo-mark{width:30px;height:30px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:13px;font-weight:800;color:#080a0e;box-shadow:0 0 16px rgba(232,184,75,.3)}
+.logo-text{font-family:var(--fd);font-size:13px;font-weight:700}.logo-ver{font-size:9px;color:var(--mu);font-family:var(--fm);margin-top:1px;letter-spacing:.1em}
+.nav-tabs{display:flex;gap:2px}
+.nav-tab{font-family:var(--fs);font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;border:none;background:none;color:var(--tx2);cursor:pointer;transition:all .15s;letter-spacing:.01em}
+.nav-tab:hover{background:var(--s2);color:var(--tx)}.nav-tab.active{background:var(--gold-d);color:var(--gold);border:1px solid var(--gold-b)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.s-pill{display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--fm);color:var(--tx2);background:var(--s1);border:1px solid var(--bd);padding:5px 11px;border-radius:20px}
+.s-dot{width:6px;height:6px;border-radius:50%;background:var(--grn);box-shadow:0 0 6px var(--grn);animation:pg 2s ease-in-out infinite}
+.s-dot.warn{background:var(--gold);box-shadow:0 0 6px var(--gold);animation:pw 1.5s ease-in-out infinite}
+@keyframes pg{0%,100%{opacity:1}50%{opacity:.4}}@keyframes pw{0%,100%{opacity:1}50%{opacity:.3}}
+.clock{font-family:var(--fm);font-size:11px;color:var(--mu)}
+.btn-top{font-family:var(--fd);font-size:10px;font-weight:600;letter-spacing:.06em;padding:5px 12px;border-radius:6px;border:1px solid var(--bd);background:none;color:var(--tx2);cursor:pointer;transition:all .2s}
+.btn-top:hover{border-color:var(--gold);color:var(--gold)}
+
+/* LAYOUT */
+.app{display:flex;height:calc(100vh - 52px)}
+.sidebar{width:200px;flex-shrink:0;border-right:1px solid var(--bd);background:var(--s1);display:flex;flex-direction:column;overflow-y:auto}
+.content{flex:1;overflow-y:auto;padding:28px 30px}
+.log-sb{width:300px;flex-shrink:0;border-left:1px solid var(--bd);background:var(--s1);display:flex;flex-direction:column;transition:width .3s;overflow:hidden}
+.log-sb.collapsed{width:0;border:none}
+.panel{display:none}.panel.active{display:block;animation:fi .25s ease}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* SIDEBAR */
+.sb-sect{padding:16px 0 8px}.sb-label{font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--mu);padding:0 14px;margin-bottom:6px}
+.sb-item{display:flex;align-items:center;gap:9px;padding:8px 14px;cursor:pointer;transition:all .15s;font-size:12px;font-weight:500;color:var(--tx2);border-left:2px solid transparent;margin-bottom:1px}
+.sb-item:hover{background:var(--s2);color:var(--tx)}.sb-item.active{background:var(--gold-d);color:var(--gold);border-left-color:var(--gold)}
+.sb-ico{font-size:14px;width:18px;text-align:center}
+.sb-badge{margin-left:auto;font-size:9px;font-family:var(--fm);background:var(--s3);color:var(--tx2);padding:1px 5px;border-radius:3px}
+.sb-item.active .sb-badge{background:var(--gold-d);color:var(--gold)}
+.sb-div{height:1px;background:var(--bd);margin:8px 14px 12px}
+.ag-item{display:flex;align-items:center;gap:8px;padding:6px 14px;font-size:11px;color:var(--tx2);transition:background .12s}
+.ag-item:hover{background:var(--s2)}.ag-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sb-bottom{margin-top:auto;padding:14px;border-top:1px solid var(--bd)}
+.vps-mini{display:flex;align-items:center;gap:6px;font-size:10px;font-family:var(--fm);color:var(--mu)}
+.vps-mini-dot{width:5px;height:5px;border-radius:50%;background:var(--mu)}.vps-mini-dot.ok{background:var(--grn);box-shadow:0 0 4px var(--grn)}
+
+/* PAGE HEADER */
+.page-hd{margin-bottom:26px}.page-hd-row{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.page-title{font-family:var(--fd);font-size:22px;font-weight:700;letter-spacing:-.02em}
+.page-sub{font-size:12px;color:var(--tx2);margin-top:3px;font-family:var(--fm)}
+
+/* KPI */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px}
+.kpi{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s}
+.kpi:hover{border-color:var(--bd2);transform:translateY(-1px)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:var(--kc,var(--gold));opacity:.5}
+.kpi-label{font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--mu);margin-bottom:8px}
+.kpi-val{font-family:var(--fd);font-size:28px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.kpi-sub{font-size:10px;color:var(--tx2);margin-top:5px;font-family:var(--fm)}
+
+/* AGENT CARDS */
+.agent-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}
+.acard{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:18px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.acard:hover{border-color:var(--bd2);transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.acard::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:var(--ac,transparent);opacity:0;transition:opacity .2s}
+.acard:hover::after{opacity:1}
+.acard-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.spill{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:20px;font-family:var(--fm)}
+.spill::before{content:'';width:4px;height:4px;border-radius:50%;background:currentColor}
+.sp-online{background:var(--grn-d);color:var(--grn);border:1px solid rgba(45,212,160,.2)}.sp-online::before{animation:pg 2s infinite}
+.sp-idle{background:var(--gold-d);color:var(--gold);border:1px solid var(--gold-b)}
+.sp-offline{background:var(--red-d);color:var(--red);border:1px solid rgba(240,93,110,.2)}
+.acard-name{font-family:var(--fd);font-size:14px;font-weight:700;margin-bottom:2px}
+.acard-role{font-size:10px;color:var(--tx2);margin-bottom:10px;line-height:1.5}
+.model-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.mbadge{font-size:9px;font-family:var(--fm);background:var(--s3);border:1px solid var(--bd);padding:2px 7px;border-radius:4px;color:var(--tx2)}
+.mbadge .star{color:var(--gold)}
+.ch-btn{font-size:9px;font-weight:700;color:var(--gold);background:none;border:1px solid var(--gold-b);padding:2px 7px;border-radius:4px;cursor:pointer;transition:all .15s;font-family:var(--fs)}.ch-btn:hover{background:var(--gold-d)}
+.met-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.met{background:var(--s2);border-radius:7px;padding:8px 10px}
+.met-l{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--mu);margin-bottom:3px}
+.met-v{font-family:var(--fm);font-size:13px;font-weight:700}
+.mv-g{color:var(--grn)}.mv-a{color:var(--gold)}.mv-c{color:var(--cyan)}.mv-r{color:var(--red)}
+.task-bar-wrap{margin-top:10px}
+.task-bar-lbl{display:flex;justify-content:space-between;font-size:9px;color:var(--mu);font-family:var(--fm);margin-bottom:4px}
+.task-bar{height:2px;background:var(--s3);border-radius:2px;overflow:hidden}
+.task-fill{height:100%;background:var(--ac,var(--gold));border-radius:2px;transition:width .5s ease}
+.tog{font-size:9px;font-weight:700;padding:3px 8px;border-radius:12px;cursor:pointer;font-family:var(--fm);letter-spacing:.04em;border:1px solid;transition:all .15s}
+.tog-on{background:var(--grn-d);color:var(--grn);border-color:rgba(45,212,160,.2)}.tog-on:hover{background:rgba(45,212,160,.2)}
+.tog-off{background:var(--s3);color:var(--mu);border-color:var(--bd)}.tog-off:hover{background:var(--s2);color:var(--tx2)}
+
+/* FEED */
+.feed-wrap{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden}
+.feed-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--bd)}
+.feed-title{font-family:var(--fd);font-size:12px;font-weight:700;letter-spacing:.06em}
+.feed-list{max-height:280px;overflow-y:auto}
+.feed-item{display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid rgba(30,37,53,.7);transition:background .12s}
+.feed-item:hover{background:var(--s2)}.feed-ico{font-size:14px;flex-shrink:0;margin-top:1px}
+.feed-content{flex:1;min-width:0}
+.feed-msg{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.feed-meta{font-size:10px;color:var(--mu);margin-top:2px;font-family:var(--fm)}
+.feed-tier{font-size:8px;font-weight:700;letter-spacing:.08em;padding:2px 6px;border-radius:3px;flex-shrink:0;margin-top:2px;font-family:var(--fm)}
+.t-auto{background:var(--grn-d);color:var(--grn)}.t-slack{background:var(--gold-d);color:var(--gold)}.t-human{background:var(--red-d);color:var(--red)}
+
+/* SETUP */
+.setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px}
+.scard{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:20px;overflow:hidden}
+.scard-title{font-family:var(--fd);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.scard-title::after{content:'';flex:1;height:1px;background:var(--bd)}
+.field-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(30,37,53,.5)}
+.field-row:last-child{border:none}
+.field-info{flex:1;min-width:0}
+.field-label{font-size:11px;font-weight:600;font-family:var(--fm);letter-spacing:.04em;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.field-hint{font-size:10px;color:var(--mu);margin-top:1px}
+.fi-wrap{display:flex;align-items:center;gap:4px}
+.fi-wrap input{width:180px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font-family:var(--fm);font-size:11px;color:var(--tx);outline:none;transition:border-color .2s}
+.fi-wrap input:focus{border-color:var(--gold)}
+.eye-btn{background:none;border:none;cursor:pointer;color:var(--mu);font-size:13px;padding:4px;transition:color .15s}.eye-btn:hover{color:var(--tx2)}
+.gen-btn{font-size:9px;font-weight:700;background:var(--gold-d);color:var(--gold);border:1px solid var(--gold-b);padding:3px 8px;border-radius:4px;cursor:pointer;font-family:var(--fs);white-space:nowrap;transition:all .15s}.gen-btn:hover{background:rgba(232,184,75,.2)}
+.field-st{font-family:var(--fm);font-size:13px;width:16px;text-align:center;flex-shrink:0}
+.tag-req{font-size:8px;background:var(--red-d);color:var(--red);border:1px solid rgba(240,93,110,.2);padding:1px 4px;border-radius:3px;vertical-align:middle;font-family:var(--fs)}
+.tag-opt{font-size:8px;background:var(--s3);color:var(--mu);border:1px solid var(--bd);padding:1px 4px;border-radius:3px;vertical-align:middle;font-family:var(--fs)}
+.checklist{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:16px 20px;margin-bottom:22px}
+.cl-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cl-title{font-family:var(--fd);font-size:13px;font-weight:700}.cl-pct{font-family:var(--fm);font-size:12px;color:var(--gold)}
+.cl-bar{height:2px;background:var(--s3);border-radius:2px;margin-bottom:14px;overflow:hidden}
+.cl-fill{height:100%;background:var(--gold);border-radius:2px;transition:width .5s ease}
+.check-item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(30,37,53,.5)}.check-item:last-child{border:none}
+.check-ring{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--bd);flex-shrink:0;transition:all .2s;position:relative}
+.check-item.done .check-ring{border-color:var(--grn);background:var(--grn)}
+.check-item.done .check-ring::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:8px;color:#080a0e;font-weight:700}
+.check-label{flex:1;font-size:12px;color:var(--tx2)}.check-item.done .check-label{color:var(--tx)}
+.check-action{font-size:10px;font-weight:600;background:none;border:1px solid var(--bd);color:var(--tx2);padding:2px 9px;border-radius:5px;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:var(--fs)}.check-action:hover{border-color:var(--gold);color:var(--gold)}
+.a-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--r);font-size:12px;margin-bottom:14px}
+.a-bar.warn{background:rgba(232,184,75,.08);border:1px solid var(--gold-b);color:var(--gold)}.a-bar.ok{background:var(--grn-d);border:1px solid rgba(45,212,160,.2);color:var(--grn)}
+.storage-bar{padding:8px 14px;border-radius:var(--r);font-size:11px;font-family:var(--fm);display:none;margin-bottom:14px;align-items:center;gap:8px}
+.storage-bar.saved{background:var(--grn-d);border:1px solid rgba(45,212,160,.2);color:var(--grn)}.storage-bar.unsaved{background:rgba(232,184,75,.07);border:1px solid var(--gold-b);color:var(--gold)}
+.vps-bar{padding:10px 14px;border-radius:var(--r);border:1px solid var(--bd);background:var(--s2);margin-bottom:22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.vps-bar.connected{border-color:rgba(45,212,160,.25);background:var(--grn-d)}
+.vps-url{background:var(--s1);border:1px solid var(--bd);border-radius:6px;padding:6px 11px;font-family:var(--fm);font-size:12px;color:var(--tx);outline:none;width:240px;transition:border-color .2s}.vps-url:focus{border-color:var(--gold)}
+.vps-tok{background:var(--s1);border:1px solid var(--bd);border-radius:6px;padding:6px 11px;font-family:var(--fm);font-size:12px;color:var(--tx);outline:none;width:140px;transition:border-color .2s}.vps-tok:focus{border-color:var(--gold)}
+.vps-st{font-size:11px;font-family:var(--fm);color:var(--tx2);margin-left:4px}.vps-st.ok{color:var(--grn)}
+
+/* RAG */
+.rag-layout{display:grid;grid-template-columns:240px 1fr;gap:16px;min-height:600px}
+.rag-list-wrap{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden}
+.rag-list-hd{padding:12px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.rag-list-title{font-family:var(--fd);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+.rag-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;transition:background .12s;border-bottom:1px solid rgba(30,37,53,.5)}
+.rag-item:hover{background:var(--s2)}.rag-item.ri-a{background:var(--gold-d)}
+.rag-dot{width:7px;height:7px;border-radius:50%;background:var(--mu);flex-shrink:0}
+.rag-item.ri-ok .rag-dot{background:var(--grn)}.rag-item.ri-tpl .rag-dot{background:var(--gold)}
+.rag-editor{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);display:flex;flex-direction:column}
+.rag-ed-hd{padding:12px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.rag-meta{font-size:10px;font-family:var(--fm);color:var(--mu);margin-top:2px}
+.rag-ta{flex:1;width:100%;background:transparent;border:none;outline:none;padding:16px;font-family:var(--fm);font-size:12px;color:var(--tx);resize:none;line-height:1.7;min-height:500px}
+.rag-ta::placeholder{color:var(--mu)}
+.rag-footer{padding:10px 14px;border-top:1px solid var(--bd);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.rag-ph{font-size:10px;font-family:var(--fm);margin-left:auto}.rag-ss{font-size:10px;font-family:var(--fm);color:var(--mu)}
+#rag-inner{display:none}
+.rag-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:400px;color:var(--mu);text-align:center;padding:20px}
+.rag-empty-ico{font-size:40px;margin-bottom:12px;opacity:.4}
+
+/* SOP BUILDER */
+.sop-layout{display:grid;grid-template-columns:200px 1fr 280px;gap:16px;min-height:600px}
+.sop-al{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden}
+.sop-al-hd{padding:12px 14px;border-bottom:1px solid var(--bd);font-family:var(--fd);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+.sop-ai{display:flex;align-items:center;gap:9px;padding:10px 14px;cursor:pointer;font-size:12px;color:var(--tx2);border-bottom:1px solid rgba(30,37,53,.5);transition:background .12s;border-left:2px solid transparent}
+.sop-ai:hover{background:var(--s2)}.sop-ai.active{background:var(--gold-d);color:var(--tx);border-left-color:var(--gold)}
+.sop-canvas{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);display:flex;flex-direction:column}
+.sop-canvas-hd{padding:14px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.sop-canvas-title{font-family:var(--fd);font-size:15px;font-weight:700}
+.sop-canvas-sub{font-size:11px;color:var(--tx2);font-family:var(--fm);margin-top:2px}
+.sop-flow{flex:1;padding:20px;overflow-y:auto;display:flex;flex-direction:column;align-items:center;gap:0}
+.sop-node{width:100%;max-width:500px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px;cursor:pointer;transition:all .2s;position:relative}
+.sop-node:hover{border-color:var(--bd2);box-shadow:0 4px 16px rgba(0,0,0,.3)}.sop-node.active{border-color:var(--gold);background:var(--gold-d)}
+.sop-node-top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.sop-node-name{font-family:var(--fd);font-size:13px;font-weight:700}
+.sop-node-tier{font-size:8px;font-weight:700;letter-spacing:.08em;padding:2px 7px;border-radius:10px;font-family:var(--fm)}
+.nt-a{background:var(--grn-d);color:var(--grn)}.nt-r{background:var(--gold-d);color:var(--gold)}.nt-h{background:var(--red-d);color:var(--red)}
+.sop-node-desc{font-size:11px;color:var(--tx2);line-height:1.6}
+.sop-conn{display:flex;flex-direction:column;align-items:center;padding:4px 0;color:var(--mu);cursor:pointer;transition:color .15s}
+.sop-conn:hover{color:var(--gold)}.sop-conn-add{font-size:10px;transition:color .15s}
+.sop-detail{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden}
+.sop-detail-hd{padding:14px 16px;border-bottom:1px solid var(--bd);flex-shrink:0}
+.sop-detail-title{font-family:var(--fd);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
+.sop-de{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:var(--mu);text-align:center;padding:20px;font-size:12px}
+.sop-db{padding:16px;flex:1;overflow-y:auto}
+.sop-field{margin-bottom:14px}
+.sop-field label{display:block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tx2);margin-bottom:6px;font-family:var(--fs)}
+.sop-input{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:7px;padding:8px 11px;font-family:var(--fm);font-size:11px;color:var(--tx);outline:none;transition:border-color .2s}.sop-input:focus{border-color:var(--gold)}
+.sop-ta{resize:vertical;min-height:80px;line-height:1.6}
+.sop-tier-row{display:flex;gap:6px}
+.sop-tier-opt{flex:1;padding:7px 4px;border-radius:7px;border:1px solid var(--bd);background:var(--s2);color:var(--tx2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;transition:all .2s;font-family:var(--fm)}
+.st-a{border-color:rgba(45,212,160,.4);background:var(--grn-d);color:var(--grn)}.st-r{border-color:var(--gold-b);background:var(--gold-d);color:var(--gold)}.st-h{border-color:rgba(240,93,110,.3);background:var(--red-d);color:var(--red)}
+.step-list{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.step-item{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:6px 9px}
+.step-txt{flex:1;font-size:11px;font-family:var(--fm)}
+.step-del{background:none;border:none;color:var(--mu);cursor:pointer;font-size:12px;padding:0 2px;transition:color .15s}.step-del:hover{color:var(--red)}
+.step-add{display:flex;gap:6px}
+.step-add input{flex:1;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:6px 9px;font-size:11px;font-family:var(--fm);color:var(--tx);outline:none}.step-add input:focus{border-color:var(--gold)}
+.sop-df{padding:12px 16px;border-top:1px solid var(--bd);flex-shrink:0}
+.sop-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:var(--mu);padding:40px;text-align:center}
+.sop-new-btn{margin-top:12px;max-width:500px;width:100%;border:1px dashed var(--bd);background:none;color:var(--mu);padding:12px;border-radius:var(--r);cursor:pointer;font-size:12px;font-family:var(--fs);transition:all .2s}.sop-new-btn:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-d)}
+
+/* EXPORT */
+.export-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.export-card{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:20px}
+.export-card-title{font-family:var(--fd);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:8px}.export-card-title::after{content:'';flex:1;height:1px;background:var(--bd)}
+.copy-btn{font-size:10px;font-weight:700;background:var(--s2);border:1px solid var(--bd);color:var(--tx2);padding:3px 9px;border-radius:4px;cursor:pointer;font-family:var(--fs);transition:all .15s}.copy-btn:hover{border-color:var(--gold);color:var(--gold)}.copy-btn.ok{color:var(--grn);border-color:rgba(45,212,160,.3)}
+.term-block{background:var(--bg);border:1px solid var(--bd);border-radius:7px;padding:12px 14px;font-family:var(--fm);font-size:11px;color:var(--grn);line-height:1.8;max-height:220px;overflow-y:auto;white-space:pre}
+.env-pre{background:var(--bg);border:1px solid var(--bd);border-radius:7px;padding:14px;font-family:var(--fm);font-size:10px;color:var(--tx2);white-space:pre;overflow-x:auto;max-height:400px;overflow-y:auto;line-height:1.7}
+
+/* LOG SIDEBAR */
+.log-sb-hd{padding:12px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.log-sb-title{font-family:var(--fd);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx2)}
+.log-sb-tabs{display:flex;gap:3px}
+.log-tab{font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;border:1px solid transparent;cursor:pointer;color:var(--mu);background:none;font-family:var(--fs);white-space:nowrap;transition:all .15s;letter-spacing:.04em}
+.log-tab.active{background:var(--gold-d);color:var(--gold);border-color:var(--gold-b)}.log-tab:hover:not(.active){background:var(--s2);color:var(--tx2)}
+.log-filter{padding:8px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:6px;flex-shrink:0}
+.log-filter input{flex:1;background:var(--s2);border:1px solid var(--bd);border-radius:5px;padding:5px 8px;font-size:10px;font-family:var(--fm);color:var(--tx);outline:none}.log-filter input:focus{border-color:var(--gold)}
+.log-status{padding:6px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:6px;flex-shrink:0}
+.poll-dot{width:5px;height:5px;border-radius:50%;background:var(--grn);box-shadow:0 0 5px var(--grn);animation:pg 2s infinite;display:none}
+.poll-txt{font-size:9px;font-family:var(--fm);color:var(--mu);flex:1}.log-count{font-size:9px;font-family:var(--fm);color:var(--mu);margin-left:auto}
+.log-body{flex:1;overflow-y:auto;padding:4px 0}
+.log-line{display:flex;gap:6px;padding:2px 10px;transition:background .1s;font-family:var(--fm);font-size:10px;line-height:1.7}.log-line:hover{background:var(--s2)}
+.log-line.ll-e{background:rgba(240,93,110,.05)}.log-line.ll-w{background:rgba(232,184,75,.04)}
+.log-ts{color:var(--mu);flex-shrink:0;width:52px}.log-lvl{flex-shrink:0;width:32px;font-weight:700}
+.lvl-e{color:var(--red)}.lvl-w{color:var(--gold)}.lvl-i{color:var(--cyan)}.lvl-d{color:var(--mu)}
+.log-msg{color:var(--tx2);word-break:break-all}
+.log-empty{padding:24px;text-align:center;font-size:11px;color:var(--mu)}
+.task-item{padding:10px 12px;border-bottom:1px solid rgba(30,37,53,.6)}.task-item:hover{background:var(--s2)}
+.task-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.task-route{font-size:10px;font-weight:700;color:var(--cyan);font-family:var(--fm)}
+.task-status{font-size:8px;font-weight:700;padding:1px 6px;border-radius:3px;font-family:var(--fm)}
+.ts-done{background:var(--grn-d);color:var(--grn)}.ts-error{background:var(--red-d);color:var(--red)}.ts-pending{background:var(--gold-d);color:var(--gold)}
+.task-body{font-size:11px;color:var(--tx2);line-height:1.5}
+
+/* MODEL MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(8,10,14,.85);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-bg.open{display:flex}
+.modal{width:640px;max-height:85vh;background:var(--s1);border:1px solid var(--bd);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.modal-hd{padding:20px 24px;border-bottom:1px solid var(--bd);flex-shrink:0}
+.modal-title{font-family:var(--fd);font-size:18px;font-weight:700}.modal-sub{font-size:12px;color:var(--tx2);margin-top:3px}
+.modal-body{overflow-y:auto;padding:16px 24px;flex:1}
+.modal-ft{padding:14px 24px;border-top:1px solid var(--bd);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+.model-sec-lbl{font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--mu);padding:12px 0 6px;display:flex;justify-content:space-between;align-items:center}
+.model-list{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.model-opt{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;cursor:pointer;transition:all .15s}.model-opt:hover{background:var(--s2);border-color:var(--bd2)}.model-opt.sel{background:var(--gold-d);border-color:var(--gold-b)}
+.model-radio{width:14px;height:14px;border-radius:50%;border:2px solid var(--bd);flex-shrink:0;transition:all .15s}.model-opt.sel .model-radio{border-color:var(--gold);background:var(--gold)}
+.model-info{flex:1}.model-name{font-size:12px;font-weight:600;margin-bottom:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}.model-desc{font-size:10px;color:var(--tx2)}
+.model-cost{font-family:var(--fm);font-size:10px;color:var(--tx2);text-align:right;flex-shrink:0}
+.mtag{font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px}
+.mtag-rec{background:var(--gold-d);color:var(--gold)}.mtag-fast{background:var(--cyan-d);color:var(--cyan)}.mtag-cheap{background:var(--grn-d);color:var(--grn)}.mtag-powerful{background:rgba(155,127,244,.1);color:var(--pur)}.mtag-cn{background:rgba(240,93,110,.1);color:var(--red)}
+
+/* MISC */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--s3);border:1px solid var(--bd2);color:var(--tx);padding:10px 18px;border-radius:8px;font-size:13px;z-index:9999;transform:translateY(20px);opacity:0;transition:all .25s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}.toast.ok{border-color:rgba(45,212,160,.3);color:var(--grn)}.toast.err{border-color:rgba(240,93,110,.3);color:var(--red)}
+@media(max-width:1100px){.agent-grid{grid-template-columns:1fr 1fr}.kpi-strip{grid-template-columns:1fr 1fr}}
+@media(max-width:768px){.sidebar{display:none}.agent-grid{grid-template-columns:1fr}.sop-layout{grid-template-columns:1fr}.setup-grid{grid-template-columns:1fr}}
+
+</style>
+</head>
+<body>
+
+<!-- ONBOARDING -->
+<div id="ob-overlay">
+<div class="ob-wrap">
+  <div class="ob-logo">⬡ Agent Mission Control</div>
+  <div class="ob-title">Configure your<br><span>agent system.</span></div>
+  <div class="ob-sub">Set up your web3 marketing agents in 3 steps. You can change these settings anytime.</div>
+  <div class="ob-steps">
+    <div class="ob-step active" id="obs-0"></div>
+    <div class="ob-step" id="obs-1"></div>
+    <div class="ob-step" id="obs-2"></div>
+  </div>
+  <!-- page 0 -->
+  <div class="ob-page active" id="ob-p0">
+    <div class="ob-sec-title">Project Identity</div>
+    <div class="ob-row">
+      <div><div class="ob-label">Project Name</div><input class="ob-input" id="ob-project" placeholder="e.g. SkyNet Protocol"/></div>
+      <div><div class="ob-label">Token Symbol</div><input class="ob-input" id="ob-token" placeholder="e.g. $SKY"/></div>
+    </div>
+    <div class="ob-label">Website</div><input class="ob-input" id="ob-website" placeholder="https://yourproject.com"/>
+    <div class="ob-row">
+      <div><div class="ob-label">Twitter/X Handle</div><input class="ob-input" id="ob-twitter" placeholder="@yourproject"/></div>
+      <div><div class="ob-label">Telegram Group</div><input class="ob-input" id="ob-telegram" placeholder="@yourgroup"/></div>
+    </div>
+    <div class="ob-sec-title">Competitors to Monitor</div>
+    <div class="ob-row">
+      <div><div class="ob-label">Competitor 1</div><input class="ob-input" id="ob-c1" placeholder="Project name"/></div>
+      <div><div class="ob-label">Competitor 2</div><input class="ob-input" id="ob-c2" placeholder="Project name"/></div>
+    </div>
+    <div class="ob-sec-title">Founder Contact</div>
+    <div class="ob-label">Your Telegram (for escalations)</div><input class="ob-input" id="ob-founder" placeholder="@yourusername"/>
+  </div>
+  <!-- page 1 -->
+  <div class="ob-page" id="ob-p1">
+    <div class="ob-sec-title">Select Agents to Enable</div>
+    <div class="ob-agents" id="ob-agent-grid"></div>
+  </div>
+  <!-- page 2 -->
+  <div class="ob-page" id="ob-p2">
+    <div class="ob-sec-title">Approval Settings</div>
+    <div class="ob-label">Slack Channel for Approvals</div><input class="ob-input" id="ob-slack-ch" placeholder="#marketing-approvals"/>
+    <div class="ob-row">
+      <div><div class="ob-label">Working Hours</div><input class="ob-input" id="ob-hours" placeholder="09:00-22:00"/></div>
+      <div><div class="ob-label">Timezone</div><input class="ob-input" id="ob-tz" placeholder="SGT"/></div>
+    </div>
+    <div class="ob-sec-title">VPS Connection (Optional)</div>
+    <div class="ob-label">Dashboard Server URL</div><input class="ob-input" id="ob-vps-url" placeholder="http://your.server:8765"/>
+    <div class="ob-label">Auth Token</div><input class="ob-input" id="ob-vps-tok" placeholder="your-token-here"/>
+  </div>
+  <div class="ob-nav">
+    <span class="ob-skip" onclick="skipOb()">Skip for now →</span>
+    <div style="display:flex;gap:8px">
+      <button class="btn-ob btn-ob-ghost" id="ob-back" onclick="obBack()" style="display:none">← Back</button>
+      <button class="btn-ob btn-primary" id="ob-next" onclick="obNext()">Continue →</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="logo-wrap" onclick="nav('overview')">
+    <div class="logo-mark">⬡</div>
+    <div><div class="logo-text" id="top-name">Agent Mission Control</div><div class="logo-ver">web3-mkt-agents v2.0</div></div>
+  </div>
+  <nav class="nav-tabs">
+    <button class="nav-tab active" onclick="nav('overview')">◈ Overview</button>
+    <button class="nav-tab" onclick="nav('agents')">⬡ Agents</button>
+    <button class="nav-tab" onclick="nav('sop')">⬢ SOP Builder</button>
+    <button class="nav-tab" onclick="nav('rag')">⬛ Knowledge</button>
+    <button class="nav-tab" onclick="nav('setup')">⚙ Setup</button>
+    <button class="nav-tab" onclick="nav('export')">↓ Export</button>
+  </nav>
+  <div class="topbar-right">
+    <div class="s-pill"><div class="s-dot" id="sys-dot"></div><span id="sys-text">loading...</span></div>
+    <button class="btn-top" onclick="reopenOb()">⚙ Reconfigure</button>
+    <button class="btn-top" onclick="toggleLogSb()">≡ Logs</button>
+    <span class="clock" id="clock"></span>
+  </div>
+</header>
+
+<!-- APP -->
+<div class="app">
+<aside class="sidebar">
+  <div class="sb-sect">
+    <div class="sb-label">Navigation</div>
+    <div class="sb-item active" onclick="nav('overview')"><span class="sb-ico">◈</span>Overview<span class="sb-badge" id="sb-active-ct">—</span></div>
+    <div class="sb-item" onclick="nav('agents')"><span class="sb-ico">⬡</span>Agents</div>
+    <div class="sb-item" onclick="nav('sop')"><span class="sb-ico">⬢</span>SOP Builder</div>
+    <div class="sb-item" onclick="nav('rag')"><span class="sb-ico">⬛</span>Knowledge</div>
+    <div class="sb-item" onclick="nav('setup')"><span class="sb-ico">⚙</span>Setup</div>
+    <div class="sb-item" onclick="nav('export')"><span class="sb-ico">↓</span>Export</div>
+  </div>
+  <div class="sb-div"></div>
+  <div class="sb-sect">
+    <div class="sb-label">Agent Fleet</div>
+    <div id="sb-agents"></div>
+  </div>
+  <div class="sb-bottom">
+    <div class="vps-mini"><div class="vps-mini-dot" id="sb-vps-dot"></div><span id="sb-poll-txt">VPS not connected</span></div>
+  </div>
+</aside>
+
+<main class="content">
+
+<!-- OVERVIEW -->
+<div class="panel active" id="panel-overview">
+  <div class="page-hd"><div class="page-hd-row">
+    <div><div class="page-title">Mission Overview</div><div class="page-sub">Real-time status · All agents · Live activity</div></div>
+    <div class="btn-row"><button class="btn btn-ghost btn-sm" onclick="simTick()">⟳ Simulate tick</button></div>
+  </div></div>
+  <div class="kpi-strip">
+    <div class="kpi" style="--kc:var(--gold)"><div class="kpi-label">Active Agents</div><div class="kpi-val" id="kpi-active">—</div><div class="kpi-sub">of 9 configured</div></div>
+    <div class="kpi" style="--kc:var(--cyan)"><div class="kpi-label">Tasks Today</div><div class="kpi-val" id="kpi-tasks">0</div><div class="kpi-sub">across all agents</div></div>
+    <div class="kpi" style="--kc:var(--grn)"><div class="kpi-label">Avg Latency</div><div class="kpi-val" id="kpi-latency">—</div><div class="kpi-sub">response time</div></div>
+    <div class="kpi" style="--kc:var(--pur)"><div class="kpi-label">Est. Cost/mo</div><div class="kpi-val" id="kpi-cost">—</div><div class="kpi-sub">model API only</div></div>
+  </div>
+  <div class="agent-grid" id="overview-grid"></div>
+  <div class="feed-wrap">
+    <div class="feed-hd"><div class="feed-title">Activity Stream</div><button class="btn btn-ghost btn-sm" onclick="simTick()">+ Event</button></div>
+    <div class="feed-list" id="activity-feed"></div>
+  </div>
+</div>
+
+<!-- AGENTS -->
+<div class="panel" id="panel-agents">
+  <div class="page-hd"><div class="page-hd-row">
+    <div><div class="page-title">Agent Fleet</div><div class="page-sub">Enable agents · Choose models · Monitor status</div></div>
+    <div style="display:flex;align-items:center;gap:10px"><span style="font-size:11px;font-family:var(--fm);color:var(--tx2)"><span id="enabled-count">0</span> enabled · <span id="cost-display">$0</span>/mo est.</span></div>
+  </div></div>
+  <div class="agent-grid" id="fleet-grid"></div>
+</div>
+
+<!-- SOP BUILDER -->
+<div class="panel" id="panel-sop">
+  <div class="page-hd"><div class="page-hd-row">
+    <div><div class="page-title">SOP Builder</div><div class="page-sub">Visual workflow editor · No-code SOP customization</div></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost btn-sm" onclick="saveSOP()">↓ Save SOP</button>
+      <button class="btn btn-primary btn-sm" onclick="exportSOP()">Export AGENTS.md</button>
+    </div>
+  </div></div>
+  <div class="sop-layout">
+    <div class="sop-al">
+      <div class="sop-al-hd">Select Agent</div>
+      <div id="sop-agent-items"></div>
+    </div>
+    <div class="sop-canvas">
+      <div class="sop-canvas-hd">
+        <div><div class="sop-canvas-title" id="sop-canvas-title">Select an agent →</div><div class="sop-canvas-sub" id="sop-canvas-sub">Click a node to edit · Click + to insert step</div></div>
+        <button class="btn btn-ghost btn-sm" id="sop-add-btn" onclick="addSOPNode()" style="display:none">+ Add step</button>
+      </div>
+      <div class="sop-flow" id="sop-flow">
+        <div class="sop-empty-state"><div style="font-size:48px;opacity:.3;margin-bottom:16px">⬢</div><div style="font-size:13px;color:var(--tx2)">Select an agent on the left<br>to view and edit its SOP</div></div>
+      </div>
+    </div>
+    <div class="sop-detail">
+      <div class="sop-detail-hd"><div class="sop-detail-title">Node Editor</div></div>
+      <div id="sop-detail-body" class="sop-de"><div style="font-size:28px;opacity:.3;margin-bottom:8px">⬢</div><div>Click a node to edit</div></div>
+      <div class="sop-df" id="sop-detail-footer" style="display:none">
+        <div class="btn-row"><button class="btn btn-ghost btn-sm" onclick="deleteSOPNode()">Delete</button><button class="btn btn-primary btn-sm" onclick="saveSOPNode()">Apply changes</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RAG -->
+<div class="panel" id="panel-rag">
+  <div class="page-hd"><div class="page-hd-row">
+    <div><div class="page-title">Knowledge Base</div><div class="page-sub">Agent RAG files · 19 templates · Fill placeholders</div></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost btn-sm" onclick="exportRAG()">↓ Export bundle</button>
+      <label class="btn btn-ghost btn-sm" style="cursor:pointer">↑ Import<input type="file" accept=".md" style="display:none" onchange="importRAG(event)"/></label>
+    </div>
+  </div></div>
+  <div class="rag-layout">
+    <div class="rag-list-wrap">
+      <div class="rag-list-hd"><span class="rag-list-title">Files</span><span style="font-size:9px;font-family:var(--fm);color:var(--mu)" id="rag-fill-ct">0/19</span></div>
+      <div id="rag-list"></div>
+    </div>
+    <div class="rag-editor">
+      <div class="rag-empty" id="rag-empty"><div class="rag-empty-ico">⬛</div><div style="font-size:13px;color:var(--tx2)">Select a file to edit</div></div>
+      <div id="rag-inner">
+        <div class="rag-ed-hd">
+          <div><div style="font-family:var(--fd);font-size:14px;font-weight:700" id="rag-title">—</div><div class="rag-meta" id="rag-meta">—</div></div>
+          <div class="btn-row"><button class="btn btn-ghost btn-sm" onclick="resetTpl()">Reset template</button><button class="btn btn-primary btn-sm" onclick="saveRAG()">Save to VPS</button></div>
+        </div>
+        <textarea class="rag-ta" id="rag-ta" placeholder="Start typing..." oninput="onRChange()"></textarea>
+        <div class="rag-footer"><span class="rag-ss" id="rag-ss"></span><span class="rag-ph" id="rag-ph"></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP -->
+<div class="panel" id="panel-setup">
+  <div class="page-hd"><div class="page-hd-row">
+    <div><div class="page-title">System Setup</div><div class="page-sub">Configure API keys · auto-saved to browser storage</div></div>
+    <div class="btn-row"><button class="btn btn-ghost btn-sm" onclick="clearStorage()">Clear storage</button><button class="btn btn-primary btn-sm" onclick="lsSave(true)">Save now</button></div>
+  </div></div>
+  <div id="missing-alert" class="a-bar warn" style="display:none">⚠ Missing required tokens: <span id="missing-list"></span></div>
+  <div id="ready-alert" class="a-bar ok" style="display:none">✓ All required API keys configured</div>
+  <div class="storage-bar" id="storage-bar"></div>
+  <div class="checklist">
+    <div class="cl-hd"><div class="cl-title">Setup Checklist</div><div class="cl-pct" id="setup-pct">0%</div></div>
+    <div class="cl-bar"><div class="cl-fill" id="setup-fill" style="width:0%"></div></div>
+    <div id="checklist"></div>
+  </div>
+  <div class="vps-bar" id="vps-bar">
+    <span style="font-size:11px;font-weight:600;color:var(--tx2);flex-shrink:0">VPS Server</span>
+    <input class="vps-url" id="srv-url" placeholder="http://your.server:8765"/>
+    <input class="vps-tok" id="srv-tok" placeholder="auth-token"/>
+    <button class="btn btn-primary btn-sm" onclick="connSrv()">Connect</button>
+    <button class="btn btn-ghost btn-sm" id="disc-btn" onclick="discSrv()" style="display:none">Disconnect</button>
+    <span class="vps-st" id="srv-status"></span>
+  </div>
+  <div class="setup-grid">
+    <div class="scard">
+      <div class="scard-title">Model APIs</div>
+      <div class="field-row"><div class="field-info"><div class="field-label">ANTHROPIC_API_KEY<span class="tag-req">req</span></div><div class="field-hint">Claude models</div></div><div class="fi-wrap"><input type="password" id="ANTHROPIC_API_KEY" placeholder="sk-ant-..." oninput="ofc(this)"/><button class="eye-btn" onclick="tv('ANTHROPIC_API_KEY')">👁</button></div><div class="field-st" id="st-ANTHROPIC_API_KEY">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">OPENAI_API_KEY<span class="tag-req">req</span></div><div class="field-hint">GPT-4.1 models</div></div><div class="fi-wrap"><input type="password" id="OPENAI_API_KEY" placeholder="sk-..." oninput="ofc(this)"/><button class="eye-btn" onclick="tv('OPENAI_API_KEY')">👁</button></div><div class="field-st" id="st-OPENAI_API_KEY">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">MINIMAX_API_KEY<span class="tag-req">req</span></div><div class="field-hint">MiniMax M2.5</div></div><div class="fi-wrap"><input type="password" id="MINIMAX_API_KEY" placeholder="eyJ..." oninput="ofc(this)"/><button class="eye-btn" onclick="tv('MINIMAX_API_KEY')">👁</button></div><div class="field-st" id="st-MINIMAX_API_KEY">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">GEMINI_API_KEY<span class="tag-req">req</span></div><div class="field-hint">Gemini Flash</div></div><div class="fi-wrap"><input type="password" id="GEMINI_API_KEY" placeholder="AIza..." oninput="ofc(this)"/><button class="eye-btn" onclick="tv('GEMINI_API_KEY')">👁</button></div><div class="field-st" id="st-GEMINI_API_KEY">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">ALIBABA_API_KEY<span class="tag-opt">opt</span></div><div class="field-hint">Qwen models</div></div><div class="fi-wrap"><input type="password" id="ALIBABA_API_KEY" placeholder="sk-..." oninput="ofc(this)"/><button class="eye-btn" onclick="tv('ALIBABA_API_KEY')">👁</button></div><div class="field-st" id="st-ALIBABA_API_KEY">·</div></div>
+    </div>
+    <div class="scard">
+      <div class="scard-title">Gateway</div>
+      <div class="field-row"><div class="field-info"><div class="field-label">GATEWAY_AUTH_TOKEN<span class="tag-req">req</span></div><div class="field-hint">OpenClaw auth</div></div><div class="fi-wrap"><input type="password" id="GATEWAY_AUTH_TOKEN" placeholder="hex token" oninput="ofc(this)"/><button class="eye-btn" onclick="tv('GATEWAY_AUTH_TOKEN')">👁</button><button class="gen-btn" onclick="genGw()">Generate</button></div><div class="field-st" id="st-GATEWAY_AUTH_TOKEN">·</div></div>
+    </div>
+    <div class="scard">
+      <div class="scard-title">Slack</div>
+      <div class="field-row"><div class="field-info"><div class="field-label">SLACK_BOT_TOKEN<span class="tag-req">req</span></div></div><div class="fi-wrap"><input type="password" id="SLACK_BOT_TOKEN" placeholder="xoxb-..." oninput="ofc(this)"/><button class="eye-btn" onclick="tv('SLACK_BOT_TOKEN')">👁</button></div><div class="field-st" id="st-SLACK_BOT_TOKEN">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">SLACK_APPROVALS_CHANNEL_ID<span class="tag-req">req</span></div></div><div class="fi-wrap"><input type="text" id="SLACK_APPROVALS_CHANNEL_ID" placeholder="C0..." oninput="ofc(this)"/></div><div class="field-st" id="st-SLACK_APPROVALS_CHANNEL_ID">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">SLACK_WEEKLY_REPORT_CHANNEL_ID<span class="tag-opt">opt</span></div></div><div class="fi-wrap"><input type="text" id="SLACK_WEEKLY_REPORT_CHANNEL_ID" placeholder="C0..." oninput="ofc(this)"/></div><div class="field-st" id="st-SLACK_WEEKLY_REPORT_CHANNEL_ID">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">SLACK_ALERTS_CHANNEL_ID<span class="tag-opt">opt</span></div></div><div class="fi-wrap"><input type="text" id="SLACK_ALERTS_CHANNEL_ID" placeholder="C0..." oninput="ofc(this)"/></div><div class="field-st" id="st-SLACK_ALERTS_CHANNEL_ID">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">SLACK_SECURITY_CHANNEL_ID<span class="tag-opt">opt</span></div></div><div class="fi-wrap"><input type="text" id="SLACK_SECURITY_CHANNEL_ID" placeholder="C0..." oninput="ofc(this)"/></div><div class="field-st" id="st-SLACK_SECURITY_CHANNEL_ID">·</div></div>
+    </div>
+    <div class="scard">
+      <div class="scard-title">Notion</div>
+      <div class="field-row"><div class="field-info"><div class="field-label">NOTION_TOKEN<span class="tag-req">req</span></div></div><div class="fi-wrap"><input type="password" id="NOTION_TOKEN" placeholder="ntn_..." oninput="ofc(this)"/><button class="eye-btn" onclick="tv('NOTION_TOKEN')">👁</button></div><div class="field-st" id="st-NOTION_TOKEN">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">NOTION_TASK_DB_ID<span class="tag-req">req</span></div></div><div class="fi-wrap"><input type="text" id="NOTION_TASK_DB_ID" placeholder="32-char ID" oninput="ofc(this)"/></div><div class="field-st" id="st-NOTION_TASK_DB_ID">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">NOTION_BD_DB_ID<span class="tag-opt">opt</span></div></div><div class="fi-wrap"><input type="text" id="NOTION_BD_DB_ID" placeholder="32-char ID" oninput="ofc(this)"/></div><div class="field-st" id="st-NOTION_BD_DB_ID">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">NOTION_FINANCE_DB_ID<span class="tag-opt">opt</span></div></div><div class="fi-wrap"><input type="text" id="NOTION_FINANCE_DB_ID" placeholder="32-char ID" oninput="ofc(this)"/></div><div class="field-st" id="st-NOTION_FINANCE_DB_ID">·</div></div>
+    </div>
+    <div class="scard">
+      <div class="scard-title">Twitter / X</div>
+      <div class="field-row"><div class="field-info"><div class="field-label">TWITTER_BEARER_TOKEN<span class="tag-req">req</span></div></div><div class="fi-wrap"><input type="password" id="TWITTER_BEARER_TOKEN" placeholder="AAAA..." oninput="ofc(this)"/><button class="eye-btn" onclick="tv('TWITTER_BEARER_TOKEN')">👁</button></div><div class="field-st" id="st-TWITTER_BEARER_TOKEN">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">TWITTER_API_KEY<span class="tag-req">req</span></div></div><div class="fi-wrap"><input type="password" id="TWITTER_API_KEY" oninput="ofc(this)"/><button class="eye-btn" onclick="tv('TWITTER_API_KEY')">👁</button></div><div class="field-st" id="st-TWITTER_API_KEY">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">TWITTER_API_SECRET<span class="tag-opt">opt</span></div></div><div class="fi-wrap"><input type="password" id="TWITTER_API_SECRET" oninput="ofc(this)"/><button class="eye-btn" onclick="tv('TWITTER_API_SECRET')">👁</button></div><div class="field-st" id="st-TWITTER_API_SECRET">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">TWITTER_ACCESS_TOKEN<span class="tag-opt">opt</span></div></div><div class="fi-wrap"><input type="password" id="TWITTER_ACCESS_TOKEN" oninput="ofc(this)"/><button class="eye-btn" onclick="tv('TWITTER_ACCESS_TOKEN')">👁</button></div><div class="field-st" id="st-TWITTER_ACCESS_TOKEN">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">TWITTER_ACCESS_SECRET<span class="tag-opt">opt</span></div></div><div class="fi-wrap"><input type="password" id="TWITTER_ACCESS_SECRET" oninput="ofc(this)"/><button class="eye-btn" onclick="tv('TWITTER_ACCESS_SECRET')">👁</button></div><div class="field-st" id="st-TWITTER_ACCESS_SECRET">·</div></div>
+    </div>
+    <div class="scard">
+      <div class="scard-title">Other APIs</div>
+      <div class="field-row"><div class="field-info"><div class="field-label">COINGECKO_API_KEY<span class="tag-opt">opt</span></div><div class="field-hint">Token price data</div></div><div class="fi-wrap"><input type="password" id="COINGECKO_API_KEY" oninput="ofc(this)"/><button class="eye-btn" onclick="tv('COINGECKO_API_KEY')">👁</button></div><div class="field-st" id="st-COINGECKO_API_KEY">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">SERPAPI_KEY<span class="tag-opt">opt</span></div><div class="field-hint">SEO research</div></div><div class="fi-wrap"><input type="password" id="SERPAPI_KEY" oninput="ofc(this)"/><button class="eye-btn" onclick="tv('SERPAPI_KEY')">👁</button></div><div class="field-st" id="st-SERPAPI_KEY">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">APOLLO_API_KEY<span class="tag-opt">opt</span></div><div class="field-hint">BD prospect research</div></div><div class="fi-wrap"><input type="password" id="APOLLO_API_KEY" oninput="ofc(this)"/><button class="eye-btn" onclick="tv('APOLLO_API_KEY')">👁</button></div><div class="field-st" id="st-APOLLO_API_KEY">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">DISCORD_BOT_TOKEN<span class="tag-opt">opt</span></div></div><div class="fi-wrap"><input type="password" id="DISCORD_BOT_TOKEN" oninput="ofc(this)"/><button class="eye-btn" onclick="tv('DISCORD_BOT_TOKEN')">👁</button></div><div class="field-st" id="st-DISCORD_BOT_TOKEN">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">SENDGRID_API_KEY<span class="tag-opt">opt</span></div></div><div class="fi-wrap"><input type="password" id="SENDGRID_API_KEY" oninput="ofc(this)"/><button class="eye-btn" onclick="tv('SENDGRID_API_KEY')">👁</button></div><div class="field-st" id="st-SENDGRID_API_KEY">·</div></div>
+      <div class="field-row"><div class="field-info"><div class="field-label">STABILITY_API_KEY<span class="tag-opt">opt</span></div><div class="field-hint">Image generation</div></div><div class="fi-wrap"><input type="password" id="STABILITY_API_KEY" oninput="ofc(this)"/><button class="eye-btn" onclick="tv('STABILITY_API_KEY')">👁</button></div><div class="field-st" id="st-STABILITY_API_KEY">·</div></div>
+    </div>
+    <div class="scard" style="grid-column:1/-1">
+      <div class="scard-title">Telegram Bot Tokens</div>
+      <div id="tg-card"></div>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT -->
+<div class="panel" id="panel-export">
+  <div class="page-hd"><div class="page-hd-row">
+    <div><div class="page-title">Export</div><div class="page-sub">Download .env · VPS deployment commands</div></div>
+  </div></div>
+  <div class="export-grid">
+    <div class="export-card">
+      <div class="export-card-title">Environment File</div>
+      <div class="btn-row" style="margin-bottom:14px">
+        <button class="btn btn-primary btn-sm" onclick="dlEnv()">↓ Download .env</button>
+        <button class="btn btn-ghost btn-sm" onclick="cpyEnv()">Copy</button>
+        <button class="btn btn-danger btn-sm" onclick="clrAll()">Clear all</button>
+      </div>
+      <div class="env-pre" id="env-pre"></div>
+    </div>
+    <div class="export-card">
+      <div class="export-card-title">VPS Deployment</div>
+      <div style="margin-bottom:12px"><div style="font-size:11px;color:var(--tx2);margin-bottom:6px;font-family:var(--fm)">1. Start gateway</div><div style="display:flex;justify-content:flex-end;margin-bottom:4px"><button class="copy-btn" onclick="cpyTerm(this)">copy</button></div><pre class="term-block">openclaw gateway stop && sleep 3 && openclaw gateway start</pre></div>
+      <div style="margin-bottom:12px"><div style="font-size:11px;color:var(--tx2);margin-bottom:6px;font-family:var(--fm)">2. Start dashboard server</div><div style="display:flex;justify-content:flex-end;margin-bottom:4px"><button class="copy-btn" onclick="cpyTerm(this)">copy</button></div><pre class="term-block">cd ~/.openclaw/workspace/skills/mktagent001/dashboard
+python3 server.py --host 0.0.0.0 --port 8765 --token your-token &</pre></div>
+      <div style="margin-bottom:12px"><div style="font-size:11px;color:var(--tx2);margin-bottom:6px;font-family:var(--fm)">3. Cloudflare tunnel</div><div style="display:flex;justify-content:flex-end;margin-bottom:4px"><button class="copy-btn" onclick="cpyTerm(this)">copy</button></div><pre class="term-block">pkill cloudflared && cloudflared tunnel --url http://localhost:8080 > /tmp/cloudflared.log 2>&1 &
+sleep 5 && cat /tmp/cloudflared.log | grep trycloudflare</pre></div>
+      <div><div style="font-size:11px;color:var(--tx2);margin-bottom:6px;font-family:var(--fm)">4. Follow logs</div><div style="display:flex;justify-content:flex-end;margin-bottom:4px"><button class="copy-btn" onclick="cpyTerm(this)">copy</button></div><pre class="term-block">openclaw logs --follow</pre></div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- LOG SIDEBAR -->
+<div class="log-sb collapsed" id="log-sb">
+  <div class="log-sb-hd">
+    <span class="log-sb-title">Logs</span>
+    <div class="log-sb-tabs">
+      <button class="log-tab active" id="log-tab-sys" onclick="switchLogTab('sys')">Gateway</button>
+      <button class="log-tab" id="log-tab-tasks" onclick="switchLogTab('tasks')">PM Tasks</button>
+    </div>
+  </div>
+  <div id="log-panel-sys" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+    <div class="log-filter"><input placeholder="Filter logs..." id="log-fi" oninput="renderLogs()"/></div>
+    <div class="log-status">
+      <div class="poll-dot" id="poll-dot"></div>
+      <span class="poll-txt" id="sb-poll-txt2">VPS not connected</span>
+      <span class="log-count" id="log-count">0 lines</span>
+    </div>
+    <div style="display:flex;gap:4px;padding:6px 10px;border-bottom:1px solid var(--bd);flex-shrink:0">
+      <span style="font-size:9px;color:var(--tx2);font-family:var(--fm)">GW:</span>
+      <span style="font-size:9px;font-family:var(--fm)" id="sb-gw-txt">—</span>
+      <span style="font-size:9px;font-family:var(--fm);color:var(--mu);margin-left:8px">Bots:</span>
+      <span style="font-size:9px;font-family:var(--fm);color:var(--cyan)" id="sb-bot-count">—</span>
+      <span style="font-size:9px;font-family:var(--fm);color:var(--mu);margin-left:8px">CPU:</span>
+      <span style="font-size:9px;font-family:var(--fm);color:var(--tx2)" id="sb-cpu">—</span>
+    </div>
+    <div class="log-body" id="log-body"><div class="log-empty">Connect VPS to see live logs</div></div>
+  </div>
+  <div id="log-panel-tasks" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+    <div class="log-filter"><input placeholder="Filter tasks..." id="task-fi" oninput="renderTasks()"/></div>
+    <div class="log-status"><span class="poll-txt">PM task history</span><span class="log-count" id="task-count">0 tasks</span></div>
+    <div class="log-body" id="task-body"><div class="log-empty">Connect VPS to see PM tasks</div></div>
+  </div>
+</div>
+
+</div><!-- end .app -->
+
+<!-- MODEL MODAL -->
+<div class="modal-bg" id="model-modal" onclick="closeMBg(event)">
+<div class="modal">
+  <div class="modal-hd"><div class="modal-title" id="modal-title">Select Model</div><div class="modal-sub" id="modal-sub"></div></div>
+  <div class="modal-body" id="modal-body"></div>
+  <div class="modal-ft"><button class="btn btn-ghost" onclick="closeM()">Cancel</button><button class="btn btn-primary" onclick="applyModel()">Apply</button></div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+const AGENTS=[
+  {id:'pm',emoji:'🧠',name:'PM Agent',role:'Routes tasks · monitors · weekly reports',color:'#e8b84b',req:true},
+  {id:'social',emoji:'📣',name:'Social Agent',role:'Twitter/X · LinkedIn · memes · trends',color:'#ec4899'},
+  {id:'content',emoji:'✍️',name:'Content Agent',role:'Blog · video scripts · design briefs',color:'#9b7ff4'},
+  {id:'data',emoji:'📊',name:'Data Agent',role:'Token · competitor · SEO · analytics',color:'#3dd6c8'},
+  {id:'bd',emoji:'🤝',name:'BD Agent',role:'Prospects · cold email · proposals',color:'#f97316'},
+  {id:'community',emoji:'💬',name:'Community Agent',role:'Discord/TG sentiment · FAQ · crisis',color:'#2dd4a0'},
+  {id:'eco',emoji:'🌐',name:'Eco Agent',role:'Events · ecosystem partnerships',color:'#06b6d4'},
+  {id:'finance',emoji:'💰',name:'Finance Agent',role:'Invoices · budget · contracts',color:'#84cc16'},
+  {id:'security',emoji:'🛡️',name:'Security Agent',role:'Impersonation · phishing · API audits',color:'#f05d6e'},
+];
+const REQF=['ANTHROPIC_API_KEY','OPENAI_API_KEY','MINIMAX_API_KEY','GEMINI_API_KEY','SLACK_BOT_TOKEN','SLACK_APPROVALS_CHANNEL_ID','NOTION_TOKEN','NOTION_TASK_DB_ID','TWITTER_BEARER_TOKEN','TWITTER_API_KEY','GATEWAY_AUTH_TOKEN'];
+const MODELS=[
+  {id:'claude-sonnet-4-6',name:'Claude Sonnet 4.6',provider:'Anthropic',apiKey:'ANTHROPIC_API_KEY',cost:0.003,tags:['rec','powerful'],desc:'Best reasoning and writing. Ideal for PM, Content, Finance.'},
+  {id:'claude-haiku-4-5',name:'Claude Haiku 4.5',provider:'Anthropic',apiKey:'ANTHROPIC_API_KEY',cost:0.00025,tags:['fast','cheap'],desc:'Fast and affordable. Good for high-volume tasks.'},
+  {id:'gpt-4.1',name:'GPT-4.1',provider:'OpenAI',apiKey:'OPENAI_API_KEY',cost:0.002,tags:['powerful'],desc:'Strong reasoning, large context. Ideal for BD Agent.'},
+  {id:'gpt-4.1-mini',name:'GPT-4.1 Mini',provider:'OpenAI',apiKey:'OPENAI_API_KEY',cost:0.0004,tags:['fast','cheap'],desc:'Fast and economical. Great for community tasks.'},
+  {id:'gpt-4.1-nano',name:'GPT-4.1 Nano',provider:'OpenAI',apiKey:'OPENAI_API_KEY',cost:0.0001,tags:['fast','cheap'],desc:'Cheapest GPT. Good for repetitive data tasks.'},
+  {id:'minimax/minimax-m2.5',name:'MiniMax M2.5',provider:'MiniMax',apiKey:'MINIMAX_API_KEY',cost:0.0006,tags:['cn'],desc:'Best for Chinese market content and CN community.'},
+  {id:'gemini-2.5-flash',name:'Gemini 2.5 Flash',provider:'Google',apiKey:'GEMINI_API_KEY',cost:0.00015,tags:['fast','cheap'],desc:'Fast multimodal. Good for security scanning.'},
+  {id:'qwen-turbo',name:'Qwen Turbo',provider:'Alibaba',apiKey:'ALIBABA_API_KEY',cost:0.0005,tags:['cn'],desc:'Alternative CN model for social and community.'},
+];
+const DEF_MODELS={pm:'claude-sonnet-4-6',social:'minimax/minimax-m2.5',content:'claude-sonnet-4-6',data:'gpt-4.1-nano',bd:'gpt-4.1',community:'gpt-4.1-mini',eco:'minimax/minimax-m2.5',finance:'claude-sonnet-4-6',security:'gemini-2.5-flash'};
+const COST_BASE={pm:[8,25],social:[5,18],content:[10,35],data:[3,10],bd:[15,45],community:[4,12],eco:[4,14],finance:[7,20],security:[2,7]};
+const RAGF=[
+  {f:'brand-voice.md',l:'Brand Voice',a:['social','content','eco','community'],core:true},
+  {f:'routing-rules.md',l:'Routing Rules',a:['pm'],core:true},
+  {f:'agent-registry.md',l:'Agent Registry',a:['pm'],core:true},
+  {f:'kpi-targets.md',l:'KPI Targets',a:['pm','data'],core:true},
+  {f:'alert-thresholds.md',l:'Alert Thresholds',a:['data'],core:true},
+  {f:'crisis-sop.md',l:'Crisis SOP',a:['pm','community']},
+  {f:'competitor-intel.md',l:'Competitor Intel',a:['data']},
+  {f:'seo-keywords.md',l:'SEO Keywords',a:['data']},
+  {f:'community-faq.md',l:'Community FAQ',a:['community']},
+  {f:'community-moderator-guidelines.md',l:'Moderator Guidelines',a:['community']},
+  {f:'channel-config.md',l:'Channel Config',a:['community']},
+  {f:'bd-icp.md',l:'BD ICP',a:['bd']},
+  {f:'bd-email-templates.md',l:'BD Email Templates',a:['bd']},
+  {f:'bd-event-targets.md',l:'BD Event Targets',a:['bd']},
+  {f:'security-impersonation-keywords.md',l:'Impersonation Keywords',a:['security']},
+  {f:'security-phishing-patterns.md',l:'Phishing Patterns',a:['security']},
+  {f:'finance-budget-plan.md',l:'Budget Plan',a:['finance']},
+  {f:'finance-vendor-list.md',l:'Vendor List',a:['finance']},
+  {f:'eco-icp.md',l:'Eco ICP',a:['eco']},
+];
+const DEF_SOPS={
+  pm:[
+    {id:'s1',name:'Receive Input',ico:'📥',tier:'AUTO',desc:'Receive message from Telegram group or DM. Parse user intent and extract task details.',steps:['Parse Telegram message','Extract task type and priority','Log to Notion task DB']},
+    {id:'s2',name:'Classify Intent',ico:'🔍',tier:'AUTO',desc:'Analyze message to determine which agent should handle this task.',steps:['Match keywords to routing table','Assign priority level','Check if escalation needed']},
+    {id:'s3',name:'Check Approval',ico:'⚖️',tier:'AUTO',desc:'Determine if task requires human approval before routing.',steps:['Check approval thresholds','If AUTO: route immediately','If SLACK_REVIEW: post to #approvals','If HUMAN_REQUIRED: DM founder']},
+    {id:'s4',name:'Route to Agent',ico:'➡️',tier:'AUTO',desc:'Delegate the task to the appropriate specialist agent.',steps:['Call sessions_spawn with agent ID','Pass task context and priority','Log routing decision']},
+    {id:'s5',name:'Monitor & Report',ico:'📊',tier:'AUTO',desc:'Track task completion and compile weekly reports.',steps:['Poll agent for task status','Update Notion task record','Include in weekly Monday report']},
+  ],
+  social:[
+    {id:'s1',name:'Monitor Mentions',ico:'👀',tier:'AUTO',desc:'Scan Twitter/X for mentions of the project, token, and competitors.',steps:['Scan Twitter search API every 30min','Filter by relevance score','Flag high-priority mentions']},
+    {id:'s2',name:'Draft Content',ico:'✍️',tier:'SLACK_REVIEW',desc:'Create social media content based on requests or trending topics.',steps:['Generate tweet/thread draft','Apply brand voice guidelines','Add relevant hashtags']},
+    {id:'s3',name:'Request Approval',ico:'✅',tier:'SLACK_REVIEW',desc:'Post draft content to Slack #approvals before publishing.',steps:['Post to #approvals with preview','Wait for human reaction','If no response in 2h, DM PM Agent']},
+    {id:'s4',name:'Publish & Track',ico:'📤',tier:'AUTO',desc:'Publish approved content and monitor engagement metrics.',steps:['Post to Twitter/X and LinkedIn','Record post ID in Notion','Track metrics for 24h']},
+  ],
+  data:[
+    {id:'s1',name:'Market Monitor',ico:'📈',tier:'AUTO',desc:'Daily scan of token price, volume, competitor activity, and social metrics.',steps:['Pull price data from CoinGecko','Check 24h volume and price delta','Compare against alert thresholds']},
+    {id:'s2',name:'Anomaly Detection',ico:'⚠️',tier:'AUTO',desc:'Detect unusual patterns in price, volume, or social activity.',steps:['Compare current metrics to 7-day average','Flag deviations >threshold','Determine alert level']},
+    {id:'s3',name:'Alert & Route',ico:'🔔',tier:'SLACK_REVIEW',desc:'Send alerts to appropriate channels based on severity.',steps:['INFO: log only','WARNING: post to #alerts','CRITICAL: ping founder + all agents']},
+    {id:'s4',name:'Daily Brief',ico:'📋',tier:'AUTO',desc:'Compile and send daily market intelligence brief.',steps:['Aggregate data from all sources','Format into brief report','Post to #weekly-report at 07:00']},
+  ],
+  security:[
+    {id:'s1',name:'Daily Scan',ico:'🔎',tier:'AUTO',desc:'Scan Twitter/X and Google for impersonation accounts and phishing sites.',steps:['Search for impersonation keywords','Check Google for fake airdrop sites','Verify official account whitelist']},
+    {id:'s2',name:'Threat Assessment',ico:'🎯',tier:'AUTO',desc:'Assess severity of identified threats.',steps:['Classify threat type','Score severity 1-5','Determine response protocol']},
+    {id:'s3',name:'Response & Alert',ico:'🚨',tier:'SLACK_REVIEW',desc:'Take action on identified threats.',steps:['Report to platform','Post warning to community channels','Escalate to founder if severity >= 4']},
+  ],
+  community:[
+    {id:'s1',name:'Monitor Channels',ico:'📡',tier:'AUTO',desc:'Monitor Discord and Telegram for activity, questions, and sentiment.',steps:['Scan Discord channels every 5min','Monitor Telegram group','Track sentiment score']},
+    {id:'s2',name:'FAQ Response',ico:'💬',tier:'AUTO',desc:'Automatically respond to common questions using FAQ knowledge base.',steps:['Match question to FAQ database','Generate response with brand voice','Post reply in channel']},
+    {id:'s3',name:'Escalate FUD',ico:'🔥',tier:'SLACK_REVIEW',desc:'Detect and escalate coordinated FUD or crisis situations.',steps:['Flag messages matching crisis patterns','Classify as Level 1/2/3','Activate crisis SOP']},
+  ],
+  bd:[
+    {id:'s1',name:'Prospect Research',ico:'🔬',tier:'AUTO',desc:'Research and qualify new potential partners and customers.',steps:['Search Apollo.io for ICP-matching companies','Score against qualification criteria','Add qualified leads to Notion BD DB']},
+    {id:'s2',name:'Outreach',ico:'📧',tier:'SLACK_REVIEW',desc:'Send personalized cold outreach to qualified prospects.',steps:['Generate personalized email','Personalize using prospect data','Route to Slack for approval']},
+    {id:'s3',name:'Follow-up',ico:'🔄',tier:'AUTO',desc:'Automatically follow up with non-responding prospects.',steps:['Check for responses after 3 days','Send follow-up if no reply','Log touchpoint in Notion']},
+  ],
+  content:[
+    {id:'s1',name:'Brief',ico:'📋',tier:'AUTO',desc:'Receive and parse content brief.',steps:['Extract content type, topic, requirements','Research topic with SerpAPI','Identify target keywords']},
+    {id:'s2',name:'Create',ico:'✍️',tier:'AUTO',desc:'Generate content draft based on brief and brand voice.',steps:['Draft content following brand voice','Add SEO keywords','Generate image prompt if needed']},
+    {id:'s3',name:'Review Request',ico:'👀',tier:'SLACK_REVIEW',desc:'Post draft for human review.',steps:['Post to #approvals','Await feedback','Revise if needed']},
+    {id:'s4',name:'Publish',ico:'🚀',tier:'AUTO',desc:'Deliver approved content.',steps:['Format for target platform','Upload to Notion/Google Drive','Confirm delivery']},
+  ],
+  eco:[
+    {id:'s1',name:'Partner Discovery',ico:'🌐',tier:'AUTO',desc:'Identify new ecosystem partnership opportunities.',steps:['Monitor Twitter for protocol announcements','Scan ecosystem grants','Score against partnership ICP']},
+    {id:'s2',name:'Outreach',ico:'🤝',tier:'SLACK_REVIEW',desc:'Initiate contact with qualified ecosystem partners.',steps:['Draft partnership proposal','Route for approval','Send via Twitter DM or email']},
+    {id:'s3',name:'Track & Report',ico:'📊',tier:'AUTO',desc:'Monitor active partnership relationships.',steps:['Update partner status in Notion','Flag partnerships needing follow-up','Include in weekly report']},
+  ],
+  finance:[
+    {id:'s1',name:'Invoice Review',ico:'🧾',tier:'AUTO',desc:'Review incoming invoices and expenses.',steps:['Receive invoice via Telegram or Notion','Verify against vendor list','Check approval threshold']},
+    {id:'s2',name:'Approval Request',ico:'✅',tier:'SLACK_REVIEW',desc:'Route invoices above threshold for human approval.',steps:['Post invoice details to #approvals','Flag amount and vendor','Await founder approval']},
+    {id:'s3',name:'Monthly Report',ico:'📊',tier:'AUTO',desc:'Compile monthly financial report.',steps:['Aggregate all expenses from Notion','Compare to budget plan','Post report on 1st of month']},
+  ],
+};
+
+function getTpl(fn){
+  const ob=window.obData||{};
+  const p=ob.project||'YOUR_PROJECT',t=ob.token||'YOUR_TOKEN',c1=ob.c1||'COMPETITOR_1',c2=ob.c2||'COMPETITOR_2';
+  const tw=ob.twitter||'@yourproject',tg=ob.telegram||'@yourgroup',web=ob.website||'https://yourproject.com',fd=ob.founder||'@FOUNDER';
+  const tpls={
+'brand-voice.md':`# Brand Voice — ${p}\n\n## Project Overview\n${p} is a [describe your project in 1-2 sentences].\n\n## Core Narrative\n**"[Your key message or tagline]"**\n\n## Brand Personality\n- **Tone**: [Confident / Playful / Technical]\n- **Voice**: [Direct / Storytelling / Data-driven]\n- **Avoid**: [List what you don't say]\n\n## Key Messages\n1. [Most important message]\n2. [Second message]\n3. [Third message]\n\n## Token: ${t}\n- Utility: [What the token does]\n- Supply: [Total supply]\n- Listing: [Exchanges]\n\n## Social Persona\nTwitter/X: [Tone and style]\nHashtags: #${p.replace(/\\s/g,'')} ${t}\n`,
+'routing-rules.md':`# Task Routing Rules — ${p}\n\n## PM Agent Decision Tree\n\n| Keywords | Route To | Priority |\n|----------|----------|----------|\n| tweet, post, twitter | Social Agent | MEDIUM |\n| blog, article, content | Content Agent | MEDIUM |\n| price, token, competitor | Data Agent | HIGH |\n| partnership, BD, outreach | BD Agent | HIGH |\n| discord, community, FUD | Community Agent | HIGH |\n| event, ecosystem | Eco Agent | LOW |\n| invoice, budget, payment | Finance Agent | HIGH |\n| scam, phishing, impersonation | Security Agent | CRITICAL |\n\n## Approval Thresholds\n- **AUTO**: Monitor tasks, data scans, FAQ replies\n- **SLACK_REVIEW**: Public-facing content before publish\n- **HUMAN_REQUIRED**: Finance >[AMOUNT], BD proposals, crisis\n\n## Escalation\nUnclassified >10min → DM ${fd}\nSecurity CRITICAL → DM founder immediately\n`,
+'agent-registry.md':`# Agent Registry — ${p}\n\n| ID | Name | Model | Telegram Bot | Status |\n|----|------|-------|--------------|--------|\n| pm | PM Agent | claude-sonnet-4-6 | @[PM_BOT] | ACTIVE |\n| social | Social Agent | minimax-m2.5 | @[SOCIAL_BOT] | ACTIVE |\n| content | Content Agent | claude-sonnet-4-6 | @[CONTENT_BOT] | ACTIVE |\n| data | Data Agent | gpt-4.1-nano | @[DATA_BOT] | ACTIVE |\n| bd | BD Agent | gpt-4.1 | @[BD_BOT] | ACTIVE |\n| community | Community Agent | gpt-4.1-mini | @[COMMUNITY_BOT] | ACTIVE |\n| eco | Eco Agent | minimax-m2.5 | @[ECO_BOT] | ACTIVE |\n| finance | Finance Agent | claude-sonnet-4-6 | @[FINANCE_BOT] | ACTIVE |\n| security | Security Agent | gemini-flash | @[SECURITY_BOT] | ACTIVE |\n\nFounder: ${fd}\n`,
+'kpi-targets.md':`# KPI Targets — ${p}\n\n## Social Media (Monthly)\n| Metric | Current | Target | Owner |\n|--------|---------|--------|-------|\n| Twitter/X followers | [CURRENT] | [TARGET] | Social Agent |\n| Discord members | [CURRENT] | [TARGET] | Community Agent |\n| Telegram subscribers | [CURRENT] | [TARGET] | Community Agent |\n\n## Content (Monthly)\n| Metric | Current | Target | Owner |\n|--------|---------|--------|-------|\n| Blog posts | [CURRENT] | [TARGET] | Content Agent |\n| Media placements | [CURRENT] | [TARGET] | BD Agent |\n\n## Business Development\n| Metric | Current | Target | Owner |\n|--------|---------|--------|-------|\n| Enterprise pilots | [CURRENT] | [TARGET] | BD Agent |\n| Protocol integrations | [CURRENT] | [TARGET] | Eco Agent |\n`,
+'alert-thresholds.md':`# Alert Thresholds — ${p}\n\n## Token Price Alerts (${t})\n| Condition | Level | Action |\n|-----------|-------|--------|\n| Price drop >10% in 1h | WARNING | Post to #alerts |\n| Price drop >20% in 4h | CRITICAL | Notify founder |\n| Price pump >15% in 1h | INFO | Draft tweet for approval |\n\n## Social Sentiment\n| Condition | Level | Action |\n|-----------|-------|--------|\n| Negative sentiment >40% in 2h | WARNING | Community Agent activates |\n| Scam mentions >20 in 1h | CRITICAL | Security escalates |\n| Trending #${p.replace(/\\s/g,'')} | INFO | Social Agent engages |\n\n## Competitors\nMonitor daily: ${c1}, ${c2}\nAlert when: new funding, major partnership, token listing\n`,
+'crisis-sop.md':`# Crisis SOP — ${p}\n\n## Level 1 — Minor FUD\nResponse time: 2 hours\nAction: Reply with facts, do not engage emotionally\n\n## Level 2 — Coordinated FUD\nResponse time: 30 minutes\nAction: Community Agent posts status update, Social Agent drafts tweet, PM notifies founder\n\n## Level 3 — CRITICAL\nResponse time: Immediate\nAction: Pause all posting, notify ${fd} via all channels\nHolding statement: "We are aware and investigating. Official update in [X] hours."\n\n## Standard Responses\n**"[PROJECT] is centralized"**\n> [Write your factual response about decentralization]\n\n**"${t} is going to zero"**\n> We don't respond to price speculation. Focus on fundamentals.\n`,
+'competitor-intel.md':`# Competitor Intelligence — ${p}\n\n## ${c1}\n- **Model**: [How they operate]\n- **Strengths**: [What they do well]\n- **Weaknesses**: [Where they're weak vs ${p}]\n- **Watch**: https://twitter.com/[HANDLE]\n\n## ${c2}\n- **Model**: [How they operate]\n- **Strengths**: [What they do well]\n- **Weaknesses**: [Where they're weak vs ${p}]\n- **Watch**: https://twitter.com/[HANDLE]\n\n## ${p} Differentiators\n1. [Key differentiator 1]\n2. [Key differentiator 2]\n3. [Key differentiator 3]\n`,
+'seo-keywords.md':`# SEO Keywords — ${p}\n\n## Tier 1 — High Priority\n- [Primary keyword 1]\n- [Primary keyword 2]\n- ${p.toLowerCase()} [main use case]\n\n## Tier 2 — Medium Priority\n- ${t} token utility\n- ${c1} alternative\n- ${c2} alternative\n\n## Content Formats That Rank\n1. "${p} vs [Competitor]: [Use Case] 2025"\n2. "How to [Action] with ${p} in 10 Minutes"\n3. "State of [Industry] Q2 2025"\n`,
+'community-faq.md':`# Community FAQ — ${p}\n\n**Q: What is ${t} used for?**\nA: ${t} has [X] utilities: (1) [Utility 1], (2) [Utility 2]. Not financial advice.\n\n**Q: Where can I buy ${t}?**\nA: ${t} is listed on [EXCHANGES]. Always verify contract address: ${web}/token\n\n**Q: What does ${p} do?**\nA: [Clear 2-3 sentence explanation]\n\n**Q: How is ${p} different from ${c1}?**\nA: [Key differentiators]\n`,
+'community-moderator-guidelines.md':`# Moderator Guidelines — ${p}\n\n## Core Principles\n1. Facts over feelings: Always respond with data and links\n2. No speculation: Never speculate on unannounced items\n3. De-escalate: Stay calm even with aggressive users\n4. Transparency: Acknowledge issues honestly\n\n## Escalation Path\nMinor → Reply in channel\nSerious FUD/scam → Ping Security Agent\nEmergency → DM ${fd}\n`,
+'channel-config.md':`# Channel Configuration — ${p}\n\n## Discord Structure\n\`\`\`\n📢 ANNOUNCEMENTS\n  #announcements (read-only)\n  #weekly-report (PM Agent posts Monday)\n  #token-updates (Data Agent auto-posts)\n\n💬 COMMUNITY\n  #general\n  #price-talk\n  #developers\n\n🤖 BOTS\n  #alerts\n  #approvals\n\`\`\`\n\n## Telegram\n- Main: ${tg} (broadcast)\n- Community Group: @[COMMUNITY_GROUP]\n`,
+'bd-icp.md':`# BD Ideal Customer Profile — ${p}\n\n## Primary ICP\n- [Company stage]\n- Building: [What they build]\n- Pain: [Their main problem you solve]\n- Budget: $[X]-$[Y]/month\n\n## Qualification Criteria (Score >= 4/6)\n- [ ] Currently spending >[THRESHOLD] on [RELEVANT COST]\n- [ ] [RELEVANT TECHNICAL CHARACTERISTIC]\n- [ ] Funded or revenue-generating\n- [ ] Decision-maker accessible\n- [ ] Open to [YOUR CATEGORY]\n`,
+'bd-email-templates.md':`# BD Email Templates — ${p}\n\n## Template 1: Cold Outreach\n**Subject**: [Value prop] — ${p} pilot for [COMPANY]\n\nHi [NAME],\n\nSaw [COMPANY]'s work on [SPECIFIC PRODUCT] — [genuine observation].\n\n[2-3 sentence pitch with core value and key metric]\n\nWe're offering [COMPANY] [FREE TRIAL/CREDIT] — no commitment.\n\nWorth a 20-minute call this week?\n\n[YOUR NAME]\n${p} BD Team\n`,
+'bd-event-targets.md':`# BD Event Targets — ${p}\n\n## Tier 1 Events\n| Event | Date | Location | Priority |\n|-------|------|----------|----------|\n| [EVENT 1] | [DATE] | [LOCATION] | CRITICAL |\n| [EVENT 2] | [DATE] | [LOCATION] | HIGH |\n\n## Event Playbook\n**Pre-event**: Research top 20 attendees, prepare outreach\n**At event**: Collect contacts, focus on [ICP ROLE]\n**Post-event (48h)**: Send personalized follow-ups\n`,
+'security-impersonation-keywords.md':`# Impersonation Keywords — ${p}\n\n## Monitor on Twitter/X\n- "${p}" + account NOT ${tw}\n- "${t}" + "airdrop" + "claim"\n- "${p} Team" in username (not verified)\n\n## Official Accounts (whitelist)\n- Twitter: ${tw}\n- Telegram: ${tg}\n- Website: ${web}\n\n## Response Protocol\n1. Screenshot + URL\n2. Report to platform\n3. Post warning to community\n4. Escalate to founder if >1000 followers\n`,
+'security-phishing-patterns.md':`# Phishing Patterns — ${p}\n\n## Common Attacks\n- Fake airdrop sites: [yourproject]-airdrop.com\n- Discord DMs claiming to be "Team"\n- Fake contract addresses\n\n## Official Contract: [INSERT CONTRACT ADDRESS]\n\n## Weekly Checklist\n- [ ] Search Twitter for impersonation accounts\n- [ ] Check Google for fake airdrop sites\n- [ ] Verify official contract pinned in all channels\n`,
+'finance-budget-plan.md':`# Marketing Budget Plan — ${p}\n\n## Total Monthly: $[AMOUNT]\n\n## Allocation\n| Category | % | Monthly |\n|----------|----|--------|\n| Content & Creative | 30% | $[X] |\n| Growth & Distribution | 35% | $[X] |\n| Events & BD | 25% | $[X] |\n| Tools & Software | 10% | $[X] |\n\n## Approval Thresholds\n- <$[SMALL]: Finance Agent approves\n- $[MED]: Slack approval from lead\n- >$[LARGE]: Founder required\n`,
+'finance-vendor-list.md':`# Vendor List — ${p}\n\n## Design & Creative\n| Vendor | Service | Contact | Payment |\n|--------|---------|---------|---------|\n| [STUDIO] | Brand assets | [EMAIL] | NET15 |\n\n## PR & Media\n| Vendor | Retainer | Notes |\n|--------|----------|---------|\n| [PR AGENCY] | $[X]/mo | [SCOPE] |\n\n## KOLs\n| Handle | Platform | Rate | Focus |\n|--------|----------|------|-------|\n| @[HANDLE] | Twitter | $[X]/post | [TOPIC] |\n`,
+'eco-icp.md':`# Ecosystem ICP — ${p}\n\n## Target: Protocol Integrations\n- Protocol that benefits from [what ${p} offers]\n- 10,000+ active developers\n- Token listed\n\n## Top Priority Targets\n| Protocol | Use Case | Status |\n|----------|----------|--------|\n| [PROTOCOL 1] | [How they use ${p}] | Targeting |\n| [PROTOCOL 2] | [How they use ${p}] | Targeting |\n\n## Partnership Benefits\n- Co-marketing (joint tweet, blog, AMA)\n- [CREDIT/INCENTIVE] for partner community\n- Joint grant applications\n`,
+  };
+  return tpls[fn]||`# ${RAGF.find(r=>r.f===fn)?.l||fn}\n\n<!-- Fill in your ${p} project details here -->\n`;
+}
+
+// ── STATE ──────────────────────────────────────────────────────
+let enabled=new Set(['pm','social','content','data']);
+let agentModels={...DEF_MODELS};
+let ragData={},activeF=null,srvURL=null,srvTok=null,srvOK=false;
+let dirty=false,taskCount=0,modalAgentId=null,modalSelectedModel=null;
+let sopData=JSON.parse(JSON.stringify(DEF_SOPS));
+let activeSopAgent=null,activeSopNode=null,editingTier=null;
+let logSbOpen=false,pollInterval=null,allLogLines=[],allTasks=[],activeLogTab='sys';
+let obPage=0,obSelAgents=new Set(['pm','social','content','data']);
+window.obData={project:'',token:'',website:'',twitter:'',telegram:'',founder:'',c1:'',c2:''};
+
+const agentState={};
+AGENTS.forEach(a=>{agentState[a.id]={status:enabled.has(a.id)?(a.id==='pm'?'online':'idle'):'offline',latency:Math.floor(Math.random()*600+150),tasks:Math.floor(Math.random()*15),queue:Math.floor(Math.random()*4),uptime:Math.floor(Math.random()*20+79)};});
+
+// ── ONBOARDING ─────────────────────────────────────────────────
+function buildObGrid(){
+  document.getElementById('ob-agent-grid').innerHTML=AGENTS.map(a=>{
+    const sel=obSelAgents.has(a.id),req=a.req;
+    return `<div class="ob-agent ${sel?'sel':''} ${req?'req':''}" onclick="${req?'':` toggleObAg('${a.id}')`}">
+      <span style="font-size:18px">${a.emoji}</span>
+      <div><div class="ob-agent-name">${a.name}${req?' <span style="font-size:9px;color:var(--gold)">req</span>':''}</div><div class="ob-agent-role">${a.role}</div></div>
+    </div>`;
+  }).join('');
+}
+function toggleObAg(id){if(obSelAgents.has(id))obSelAgents.delete(id);else obSelAgents.add(id);obSelAgents.add('pm');buildObGrid();}
+function obNext(){
+  if(obPage===0){
+    window.obData.project=document.getElementById('ob-project').value.trim();
+    window.obData.token=document.getElementById('ob-token').value.trim();
+    window.obData.website=document.getElementById('ob-website').value.trim();
+    window.obData.twitter=document.getElementById('ob-twitter').value.trim();
+    window.obData.telegram=document.getElementById('ob-telegram').value.trim();
+    window.obData.founder=document.getElementById('ob-founder').value.trim();
+    window.obData.c1=document.getElementById('ob-c1').value.trim();
+    window.obData.c2=document.getElementById('ob-c2').value.trim();
+  }
+  if(obPage<2){
+    document.getElementById(`ob-p${obPage}`).classList.remove('active');
+    document.getElementById(`obs-${obPage}`).classList.remove('active');
+    document.getElementById(`obs-${obPage}`).classList.add('done');
+    obPage++;
+    document.getElementById(`ob-p${obPage}`).classList.add('active');
+    document.getElementById(`obs-${obPage}`).classList.add('active');
+    document.getElementById('ob-back').style.display='';
+    if(obPage===2)document.getElementById('ob-next').textContent='Launch Dashboard →';
+  }else{finishOb();}
+}
+function obBack(){
+  document.getElementById(`ob-p${obPage}`).classList.remove('active');
+  document.getElementById(`obs-${obPage}`).classList.remove('active','done');
+  obPage--;
+  document.getElementById(`ob-p${obPage}`).classList.add('active');
+  document.getElementById(`obs-${obPage}`).classList.add('active');
+  document.getElementById(`obs-${obPage}`).classList.remove('done');
+  if(obPage===0)document.getElementById('ob-back').style.display='none';
+  document.getElementById('ob-next').textContent='Continue →';
+}
+function finishOb(){
+  window.obData.slackCh=document.getElementById('ob-slack-ch').value.trim();
+  const vpsUrl=document.getElementById('ob-vps-url').value.trim();
+  const vpsTok=document.getElementById('ob-vps-tok').value.trim();
+  if(vpsUrl){document.getElementById('srv-url').value=vpsUrl;document.getElementById('srv-tok').value=vpsTok;}
+  enabled=new Set([...obSelAgents]);enabled.add('pm');
+  AGENTS.forEach(a=>{agentState[a.id].status=enabled.has(a.id)?(a.id==='pm'?'online':'idle'):'offline';});
+  if(window.obData.project)document.getElementById('top-name').textContent=window.obData.project+' · Mission Control';
+  if(window.obData.slackCh)document.getElementById('SLACK_APPROVALS_CHANNEL_ID').value=window.obData.slackCh;
+  document.getElementById('ob-overlay').style.display='none';
+  refreshAll();lsSave();
+  showToast('Welcome to '+(window.obData.project||'Mission Control')+' 🚀','ok');
+  if(vpsUrl&&vpsTok)setTimeout(connSrv,500);
+}
+function skipOb(){document.getElementById('ob-overlay').style.display='none';refreshAll();}
+function reopenOb(){
+  obPage=0;
+  document.querySelectorAll('.ob-page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('ob-p0').classList.add('active');
+  document.querySelectorAll('.ob-step').forEach(s=>{s.classList.remove('active','done');});
+  document.getElementById('obs-0').classList.add('active');
+  document.getElementById('ob-back').style.display='none';
+  document.getElementById('ob-next').textContent='Continue →';
+  if(window.obData.project)document.getElementById('ob-project').value=window.obData.project;
+  if(window.obData.token)document.getElementById('ob-token').value=window.obData.token;
+  if(window.obData.website)document.getElementById('ob-website').value=window.obData.website;
+  if(window.obData.twitter)document.getElementById('ob-twitter').value=window.obData.twitter;
+  if(window.obData.telegram)document.getElementById('ob-telegram').value=window.obData.telegram;
+  if(window.obData.founder)document.getElementById('ob-founder').value=window.obData.founder;
+  if(window.obData.c1)document.getElementById('ob-c1').value=window.obData.c1;
+  if(window.obData.c2)document.getElementById('ob-c2').value=window.obData.c2;
+  document.getElementById('ob-overlay').style.display='flex';
+}
+
+// ── LOCAL STORAGE ──────────────────────────────────────────────
+const LS_KEY='w3ma_v4';
+function lsSave(manual=false){
+  const tokens={};
+  document.querySelectorAll('input[type=text],input[type=password]').forEach(el=>{if(el.id&&el.value.trim()&&el.type!=='file')tokens[el.id]=el.value.trim();});
+  const data={tokens,agentModels,enabledAgents:[...enabled],obData:window.obData,sopData,savedAt:Date.now()};
+  try{localStorage.setItem(LS_KEY,JSON.stringify(data));updateStorageBar(true);if(manual)showToast('Saved','ok');}
+  catch(e){showToast('Storage save failed','err');}
+}
+function lsLoad(){try{const r=localStorage.getItem(LS_KEY);return r?JSON.parse(r):null;}catch(e){return null;}}
+function restoreFromStorage(){
+  const data=lsLoad();if(!data){updateStorageBar(false);return;}
+  if(data.tokens)Object.entries(data.tokens).forEach(([id,val])=>{const el=document.getElementById(id);if(el){el.value=val;const s=document.getElementById('st-'+id);if(s){s.textContent='✓';s.style.color='var(--grn)';}}});
+  if(data.agentModels)Object.assign(agentModels,data.agentModels);
+  if(data.enabledAgents){enabled=new Set(data.enabledAgents);enabled.add('pm');}
+  if(data.obData){Object.assign(window.obData,data.obData);if(window.obData.project)document.getElementById('top-name').textContent=window.obData.project+' · Mission Control';}
+  if(data.sopData)Object.assign(sopData,data.sopData);
+  updateStorageBar(true,data.savedAt);
+}
+function updateStorageBar(saved,ts){
+  const el=document.getElementById('storage-bar');if(!el)return;
+  el.style.display='flex';
+  if(saved){const d=ts?new Date(ts).toLocaleString():'now';el.className='storage-bar saved';el.innerHTML=`💾 Saved (${d}) <span style="color:var(--mu);font-size:10px;margin-left:8px">Browser only — never sent to server</span>`;}
+  else{el.className='storage-bar unsaved';el.innerHTML=`⚠ Not saved — keys will be lost on refresh`;}
+}
+function clearStorage(){if(!confirm('Clear all saved API keys?'))return;localStorage.removeItem(LS_KEY);document.querySelectorAll('input').forEach(el=>{if(el.type!=='file')el.value='';});document.querySelectorAll('[id^="st-"]').forEach(s=>{s.textContent='·';s.style.color='var(--mu)';});buildChecklist();updateSysStatus();updateStorageBar(false);showToast('Cleared');}
+
+// ── BUILD UI ───────────────────────────────────────────────────
+function buildOverviewGrid(){
+  document.getElementById('overview-grid').innerHTML=AGENTS.map(a=>{
+    const s=agentState[a.id],on=enabled.has(a.id),st=on?s.status:'offline';
+    const pct=Math.min(100,s.queue*33),m=getMI(getM(a.id));
+    return `<div class="acard" style="--ac:${a.color}" onclick="nav('agents')">
+      <div class="acard-top"><span style="font-size:20px">${a.emoji}</span><span class="spill sp-${st}">${st}</span></div>
+      <div class="acard-name">${a.name}</div><div class="acard-role">${a.role}</div>
+      <div class="model-row"><span class="mbadge">${m.name}</span></div>
+      <div class="met-row">
+        <div class="met"><div class="met-l">Latency</div><div class="met-v ${on?(s.latency<500?'mv-g':'mv-a'):''}">${on?s.latency+'ms':'—'}</div></div>
+        <div class="met"><div class="met-l">Tasks</div><div class="met-v ${on?'mv-c':''}">${on?s.tasks:'—'}</div></div>
+        <div class="met"><div class="met-l">Queue</div><div class="met-v ${on&&s.queue>2?'mv-a':''}">${on?s.queue:'—'}</div></div>
+      </div>
+      ${on?`<div class="task-bar-wrap"><div class="task-bar-lbl"><span>Load</span><span>${pct}%</span></div><div class="task-bar"><div class="task-fill" style="width:${pct}%"></div></div></div>`:''}
+    </div>`;
+  }).join('');
+}
+function buildFleetGrid(){
+  document.getElementById('fleet-grid').innerHTML=AGENTS.map(a=>{
+    const s=agentState[a.id],on=enabled.has(a.id),st=on?s.status:'offline';
+    const m=getMI(getM(a.id)),base=COST_BASE[a.id];
+    return `<div class="acard" style="--ac:${a.color}">
+      <div class="acard-top"><span style="font-size:20px">${a.emoji}</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="spill sp-${st}">${st}</span>
+          <button class="tog ${on?'tog-on':'tog-off'}" onclick="toggleAg('${a.id}',event)">${on?'ON':'OFF'}</button>
+        </div>
+      </div>
+      <div class="acard-name">${a.name}</div><div class="acard-role">${a.role}</div>
+      <div class="model-row">
+        <span class="mbadge">${m.name}${m.tags.includes('rec')?'<span class="star"> ★</span>':''}</span>
+        <button class="ch-btn" onclick="openMModal('${a.id}',event)">⇄ Change</button>
+      </div>
+      <div class="met-row">
+        <div class="met"><div class="met-l">Latency</div><div class="met-v ${on?(s.latency<500?'mv-g':'mv-a'):''}">${on?s.latency+'ms':'—'}</div></div>
+        <div class="met"><div class="met-l">Tasks</div><div class="met-v ${on?'mv-c':''}">${on?s.tasks:'—'}</div></div>
+        <div class="met"><div class="met-l">Uptime</div><div class="met-v ${on?'mv-g':''}">${on?s.uptime+'%':'—'}</div></div>
+      </div>
+      <div style="margin-top:8px;font-size:9px;font-family:var(--fm);color:var(--mu)">$${base[0]}–${base[1]}/mo · ${m.provider}</div>
+    </div>`;
+  }).join('');
+  let lo=0,hi=0;enabled.forEach(id=>{const b=COST_BASE[id];if(b){lo+=b[0];hi+=b[1];}});
+  document.getElementById('cost-display').textContent=`$${lo}–${hi}`;
+  document.getElementById('enabled-count').textContent=enabled.size;
+}
+function buildSidebar(){
+  document.getElementById('sb-agents').innerHTML=AGENTS.map(a=>{
+    const s=agentState[a.id],on=enabled.has(a.id),st=on?s.status:'offline';
+    const c=st==='online'?'var(--grn)':st==='idle'?'var(--gold)':'var(--mu)';
+    return `<div class="ag-item"><div class="ag-dot" style="background:${c};${st==='online'?'box-shadow:0 0 5px '+c:''}"></div><span style="flex:1">${a.emoji} ${a.name}</span><span style="font-size:9px;font-family:var(--fm);color:${c}">${on?s.latency+'ms':'—'}</span></div>`;
+  }).join('');
+  document.getElementById('sb-active-ct').textContent=[...enabled].length;
+}
+function toggleAg(id,e){
+  e.stopPropagation();
+  if(AGENTS.find(a=>a.id===id)?.req){showToast('PM Agent is required','err');return;}
+  if(enabled.has(id)){enabled.delete(id);agentState[id].status='offline';}
+  else{enabled.add(id);agentState[id].status='idle';}
+  buildFleetGrid();buildSidebar();buildOverviewGrid();updateKPIs();updateSysStatus();lsSave();
+  addFeed(enabled.has(id)?'✅':'⏸',`${AGENTS.find(a=>a.id===id).name} ${enabled.has(id)?'enabled':'paused'}`,'system','AUTO');
+}
+function updateKPIs(){
+  document.getElementById('kpi-active').textContent=AGENTS.filter(a=>enabled.has(a.id)).length;
+  document.getElementById('kpi-tasks').textContent=taskCount;
+  const lats=AGENTS.filter(a=>enabled.has(a.id)).map(a=>agentState[a.id].latency);
+  document.getElementById('kpi-latency').textContent=lats.length?Math.round(lats.reduce((s,v)=>s+v,0)/lats.length)+'ms':'—';
+  let lo=0;enabled.forEach(id=>{const b=COST_BASE[id];if(b)lo+=b[0];});
+  document.getElementById('kpi-cost').textContent=`$${lo}`;
+}
+function updateSysStatus(){
+  const miss=REQF.filter(f=>!gv(f)).length;
+  const dot=document.getElementById('sys-dot'),txt=document.getElementById('sys-text');
+  if(miss>0){dot.className='s-dot warn';txt.textContent=`${miss} tokens missing`;}
+  else if(enabled.size===0){dot.className='s-dot warn';txt.textContent='No agents active';}
+  else{dot.className='s-dot';txt.textContent=`${enabled.size} agents active`;}
+}
+
+// ── SOP ───────────────────────────────────────────────────────
+function buildSOPAgentList(){
+  document.getElementById('sop-agent-items').innerHTML=AGENTS.map(a=>
+    `<div class="sop-ai ${activeSopAgent===a.id?'active':''}" onclick="selectSopAgent('${a.id}')">${a.emoji} ${a.name}</div>`
+  ).join('');
+}
+function selectSopAgent(id){
+  activeSopAgent=id;activeSopNode=null;buildSOPAgentList();
+  const a=AGENTS.find(x=>x.id===id);
+  document.getElementById('sop-canvas-title').textContent=`${a.emoji} ${a.name}`;
+  document.getElementById('sop-canvas-sub').textContent=a.role;
+  document.getElementById('sop-add-btn').style.display='';
+  renderSopFlow();clearSopDetail();
+}
+function tierCls(t){return t==='AUTO'?'nt-a':t==='SLACK_REVIEW'?'nt-r':'nt-h';}
+function renderSopFlow(){
+  if(!activeSopAgent)return;
+  const nodes=sopData[activeSopAgent]||[];
+  if(!nodes.length){document.getElementById('sop-flow').innerHTML=`<div class="sop-empty-state"><div style="font-size:48px;opacity:.3;margin-bottom:16px">⬢</div><div style="font-size:13px;color:var(--tx2)">No SOP nodes yet</div><button class="sop-new-btn" onclick="addSOPNode()">+ Add first step</button></div>`;return;}
+  let html='';
+  nodes.forEach((n,i)=>{
+    const isAct=activeSopNode===n.id;
+    html+=`<div class="sop-node ${isAct?'active':''}" onclick="selectSopNode('${n.id}')">
+      <div class="sop-node-top">
+        <span style="font-size:16px">${n.ico||'⬢'}</span>
+        <span class="sop-node-name">${n.name}</span>
+        <span class="sop-node-tier ${tierCls(n.tier)}">${n.tier}</span>
+        <span style="font-size:9px;font-family:var(--fm);color:var(--mu);margin-left:auto">Step ${i+1}</span>
+      </div>
+      <div class="sop-node-desc">${n.desc}</div>
+      ${n.steps?.length?`<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">${n.steps.map(s=>`<span style="font-size:9px;background:var(--s3);border:1px solid var(--bd);border-radius:4px;padding:2px 7px;font-family:var(--fm);color:var(--tx2)">${s}</span>`).join('')}</div>`:''}
+    </div>`;
+    if(i<nodes.length-1)html+=`<div class="sop-conn" onclick="insertSopAfter('${n.id}')"><div style="font-size:20px">↓</div><div class="sop-conn-add">+ insert step</div></div>`;
+  });
+  html+=`<button class="sop-new-btn" onclick="addSOPNode()">+ Add step</button>`;
+  document.getElementById('sop-flow').innerHTML=html;
+}
+function selectSopNode(id){
+  activeSopNode=id;renderSopFlow();
+  const n=(sopData[activeSopAgent]||[]).find(x=>x.id===id);if(!n)return;
+  editingTier=n.tier;
+  document.getElementById('sop-detail-body').className='sop-db';
+  document.getElementById('sop-detail-footer').style.display='';
+  document.getElementById('sop-detail-body').innerHTML=`
+    <div class="sop-field"><label>Node Name</label><input class="sop-input" id="sn-name" value="${esc(n.name)}"/></div>
+    <div class="sop-field"><label>Icon (emoji)</label><input class="sop-input" id="sn-ico" value="${n.ico||'⬢'}" style="width:80px"/></div>
+    <div class="sop-field"><label>Description</label><textarea class="sop-input sop-ta" id="sn-desc">${esc(n.desc)}</textarea></div>
+    <div class="sop-field"><label>Approval Level</label>
+      <div class="sop-tier-row">
+        <div class="sop-tier-opt ${n.tier==='AUTO'?'st-a':''}" onclick="selTier('AUTO')">AUTO</div>
+        <div class="sop-tier-opt ${n.tier==='SLACK_REVIEW'?'st-r':''}" onclick="selTier('SLACK_REVIEW')">REVIEW</div>
+        <div class="sop-tier-opt ${n.tier==='HUMAN_REQUIRED'?'st-h':''}" onclick="selTier('HUMAN_REQUIRED')">HUMAN</div>
+      </div>
+    </div>
+    <div class="sop-field"><label>Steps</label>
+      <div class="step-list" id="step-list">${(n.steps||[]).map((s,i)=>`<div class="step-item"><span class="step-txt">${esc(s)}</span><button class="step-del" onclick="delStep(${i})">×</button></div>`).join('')}</div>
+      <div class="step-add"><input id="step-new" placeholder="Add a step..." onkeydown="if(event.key==='Enter')addStep()"/><button class="btn btn-ghost btn-sm" onclick="addStep()">Add</button></div>
+    </div>`;
+}
+function selTier(t){
+  editingTier=t;
+  const opts=document.querySelectorAll('.sop-tier-opt');
+  opts.forEach((el,i)=>{el.className='sop-tier-opt';if(i===0&&t==='AUTO')el.classList.add('st-a');if(i===1&&t==='SLACK_REVIEW')el.classList.add('st-r');if(i===2&&t==='HUMAN_REQUIRED')el.classList.add('st-h');});
+}
+function addStep(){const inp=document.getElementById('step-new');if(!inp||!inp.value.trim())return;const n=(sopData[activeSopAgent]||[]).find(x=>x.id===activeSopNode);if(!n)return;if(!n.steps)n.steps=[];n.steps.push(inp.value.trim());inp.value='';selectSopNode(activeSopNode);}
+function delStep(i){const n=(sopData[activeSopAgent]||[]).find(x=>x.id===activeSopNode);if(!n||!n.steps)return;n.steps.splice(i,1);selectSopNode(activeSopNode);}
+function saveSOPNode(){
+  if(!activeSopAgent||!activeSopNode)return;
+  const n=(sopData[activeSopAgent]||[]).find(x=>x.id===activeSopNode);if(!n)return;
+  n.name=document.getElementById('sn-name').value.trim()||n.name;
+  n.ico=document.getElementById('sn-ico').value.trim()||n.ico;
+  n.desc=document.getElementById('sn-desc').value.trim()||n.desc;
+  if(editingTier)n.tier=editingTier;
+  renderSopFlow();selectSopNode(activeSopNode);showToast('Node saved','ok');
+}
+function addSOPNode(){if(!activeSopAgent){showToast('Select an agent first','err');return;}if(!sopData[activeSopAgent])sopData[activeSopAgent]=[];const nn={id:'n'+Date.now(),name:'New Step',ico:'⬢',tier:'AUTO',desc:'Describe what this step does.',steps:[]};sopData[activeSopAgent].push(nn);renderSopFlow();activeSopNode=nn.id;selectSopNode(nn.id);}
+function insertSopAfter(aid){if(!activeSopAgent)return;const nodes=sopData[activeSopAgent]||[];const idx=nodes.findIndex(n=>n.id===aid);const nn={id:'n'+Date.now(),name:'New Step',ico:'⬢',tier:'AUTO',desc:'Describe this step.',steps:[]};nodes.splice(idx+1,0,nn);renderSopFlow();activeSopNode=nn.id;selectSopNode(nn.id);}
+function deleteSOPNode(){if(!activeSopAgent||!activeSopNode)return;if(!confirm('Delete this node?'))return;sopData[activeSopAgent]=(sopData[activeSopAgent]||[]).filter(n=>n.id!==activeSopNode);activeSopNode=null;clearSopDetail();renderSopFlow();showToast('Deleted');}
+function clearSopDetail(){document.getElementById('sop-detail-body').className='sop-de';document.getElementById('sop-detail-body').innerHTML='<div style="font-size:28px;opacity:.3;margin-bottom:8px">⬢</div><div>Click a node to edit</div>';document.getElementById('sop-detail-footer').style.display='none';}
+function saveSOP(){lsSave();showToast('SOP saved','ok');}
+function exportSOP(){
+  if(!activeSopAgent){showToast('Select an agent first','err');return;}
+  const nodes=sopData[activeSopAgent]||[],a=AGENTS.find(x=>x.id===activeSopAgent);
+  let md=`# ${a.emoji} ${a.name} — AGENTS.md\n\n## SOP Functions\n\n`;
+  nodes.forEach((n,i)=>{md+=`### Step ${i+1}: ${n.name}\n**Trigger**: ${n.desc}\n**Approval**: \`${n.tier}\`\n\n`;if(n.steps?.length){md+=`**Steps:**\n`;n.steps.forEach(s=>md+=`- ${s}\n`);md+='\n';}});
+  const blob=new Blob([md],{type:'text/markdown'});const u=URL.createObjectURL(blob);const a2=document.createElement('a');a2.href=u;a2.download=`${activeSopAgent}-AGENTS.md`;a2.click();URL.revokeObjectURL(u);showToast('Exported','ok');
+}
+
+// ── FEED ──────────────────────────────────────────────────────
+const FEED_MSGS=[
+  ['📊','Data Agent completed token_monitor() — 0 anomalies','data','AUTO'],
+  ['📣','Social Agent drafted tweet — awaiting approval','social','SLACK_REVIEW'],
+  ['🧠','PM Agent routed content task (priority: HIGH)','pm','AUTO'],
+  ['🛡️','Security Agent: impersonation scan — 0 threats','security','AUTO'],
+  ['✍️','Content Agent blog draft ready for review','content','SLACK_REVIEW'],
+  ['🤝','BD Agent added 3 new prospects to pipeline','bd','AUTO'],
+  ['💬','Community Agent replied to 7 FAQ messages','community','AUTO'],
+  ['💰','Finance Agent flagged invoice from unknown vendor','finance','HUMAN_REQUIRED'],
+  ['🌐','Eco Agent found 2 partnership opportunities','eco','AUTO'],
+];
+function addFeed(ico,msg,agent,tier){
+  const feed=document.getElementById('activity-feed');if(!feed)return;
+  const tCls=tier==='AUTO'?'t-auto':tier==='SLACK_REVIEW'?'t-slack':'t-human';
+  const item=document.createElement('div');item.className='feed-item';item.style.opacity='0';item.style.transition='opacity .3s';
+  item.innerHTML=`<span class="feed-ico">${ico}</span><div class="feed-content"><div class="feed-msg">${msg}</div><div class="feed-meta">${new Date().toLocaleTimeString('en-US',{hour12:false})} · ${agent}</div></div><span class="feed-tier ${tCls}">${tier}</span>`;
+  feed.insertBefore(item,feed.firstChild);requestAnimationFrame(()=>item.style.opacity='1');
+  if(feed.children.length>20)feed.removeChild(feed.lastChild);
+}
+function simTick(){
+  if(enabled.size===0){showToast('Enable at least one agent','err');return;}
+  const [ico,msg,agent,tier]=FEED_MSGS[Math.floor(Math.random()*FEED_MSGS.length)];
+  addFeed(ico,msg,agent,tier);taskCount++;
+  AGENTS.forEach(a=>{if(enabled.has(a.id)){agentState[a.id].latency=Math.max(80,agentState[a.id].latency+Math.floor(Math.random()*200-100));if(Math.random()>.7)agentState[a.id].tasks++;}});
+  buildOverviewGrid();buildSidebar();updateKPIs();
+}
+setInterval(()=>{if(enabled.size>0)simTick();},12000);
+
+// ── CHECKLIST ─────────────────────────────────────────────────
+function buildChecklist(){
+  const items=[
+    {l:'Core model APIs (Anthropic + OpenAI + MiniMax + Gemini)',ok:gv('ANTHROPIC_API_KEY')&&gv('OPENAI_API_KEY')&&gv('MINIMAX_API_KEY')&&gv('GEMINI_API_KEY'),nav:'setup'},
+    {l:'Slack bot + channel IDs',ok:gv('SLACK_BOT_TOKEN')&&gv('SLACK_APPROVALS_CHANNEL_ID'),nav:'setup'},
+    {l:'Notion token + Task DB ID',ok:gv('NOTION_TOKEN')&&gv('NOTION_TASK_DB_ID'),nav:'setup'},
+    {l:'Twitter/X API keys',ok:gv('TWITTER_BEARER_TOKEN')&&gv('TWITTER_API_KEY'),nav:'setup'},
+    {l:'Gateway auth token',ok:!!gv('GATEWAY_AUTH_TOKEN'),nav:'setup'},
+    {l:'Core RAG files filled',ok:['brand-voice.md','routing-rules.md'].every(f=>ragData[f]&&!ragData[f].includes('[')),nav:'rag'},
+    {l:'At least one agent enabled',ok:enabled.size>0,nav:'agents'},
+  ];
+  document.getElementById('checklist').innerHTML=items.map(it=>`<div class="check-item ${it.ok?'done':''}"><div class="check-ring"></div><div class="check-label">${it.l}</div><button class="check-action" onclick="nav('${it.nav}')">${it.ok?'✓ done':'Configure →'}</button></div>`).join('');
+  const pct=Math.round(items.filter(i=>i.ok).length/items.length*100);
+  document.getElementById('setup-pct').textContent=pct+'%';
+  document.getElementById('setup-fill').style.width=pct+'%';
+  const miss=REQF.filter(f=>!gv(f));
+  document.getElementById('missing-alert').style.display=miss.length?'flex':'none';
+  document.getElementById('ready-alert').style.display=miss.length?'none':'flex';
+  if(miss.length)document.getElementById('missing-list').textContent=miss.slice(0,6).join(', ')+(miss.length>6?` +${miss.length-6} more`:'');
+}
+function buildTgFields(){
+  document.getElementById('tg-card').innerHTML=AGENTS.map(a=>`<div class="field-row"><div class="field-info"><div class="field-label">TG_TOKEN_${a.id.toUpperCase()} <span class="tag-opt">opt</span></div><div class="field-hint">${a.emoji} ${a.name}</div></div><div class="fi-wrap"><input type="password" id="TG_TOKEN_${a.id.toUpperCase()}" placeholder="123456:ABC-..." oninput="ofc(this)"/><button class="eye-btn" onclick="tv('TG_TOKEN_${a.id.toUpperCase()}')">👁</button></div><div class="field-st" id="st-TG_TOKEN_${a.id.toUpperCase()}">·</div></div>`).join('');
+}
+
+// ── RAG ───────────────────────────────────────────────────────
+function buildRAGList(){
+  const filled=RAGF.filter(r=>ragData[r.f]&&!ragData[r.f].includes('[')).length;
+  document.getElementById('rag-fill-ct').textContent=`${filled}/${RAGF.length}`;
+  document.getElementById('rag-list').innerHTML=RAGF.map(r=>{
+    const has=!!ragData[r.f],ok=has&&!ragData[r.f].includes('[');
+    return `<div class="rag-item ${ok?'ri-ok':has?'ri-tpl':''} ${activeF===r.f?'ri-a':''}" onclick="openRAG('${r.f}')">
+      <div class="rag-dot"></div>
+      <div><div style="font-size:12px;font-weight:500">${r.l}${r.core?' <span style="color:var(--red);font-size:8px;font-weight:700;margin-left:3px">CORE</span>':''}</div><div style="font-size:9px;color:var(--mu);margin-top:1px">${r.a.map(id=>AGENTS.find(x=>x.id===id)?.emoji||'').join('')} ${r.a.join(', ')}</div></div>
+    </div>`;
+  }).join('');
+}
+async function openRAG(fn){
+  activeF=fn;buildRAGList();
+  const r=RAGF.find(x=>x.f===fn);let c=ragData[fn];
+  if(!c&&srvOK){try{const d=await apiFetch('/files/read?type=rag&file='+encodeURIComponent(fn));if(d.content){c=d.content;ragData[fn]=c;}}catch(e){}}
+  if(!c)c=getTpl(fn);ragData[fn]=c;
+  document.getElementById('rag-empty').style.display='none';
+  document.getElementById('rag-inner').style.display='flex';
+  document.getElementById('rag-inner').style.flexDirection='column';
+  document.getElementById('rag-title').textContent=r.l;
+  document.getElementById('rag-meta').textContent=`${fn} → ${r.a.join(', ')}`;
+  document.getElementById('rag-ta').value=c;updPH(c);dirty=false;updSS();
+}
+function onRChange(){const c=document.getElementById('rag-ta').value;ragData[activeF]=c;dirty=true;updPH(c);updSS();buildChecklist();}
+function updPH(c){const m=(c.match(/\[[^\]]{1,60}\]/g)||[]);const el=document.getElementById('rag-ph');if(m.length){el.style.color='var(--gold)';el.textContent=`⚠ ${m.length} placeholder${m.length>1?'s':''} remaining`;}else{el.style.color='var(--grn)';el.textContent='✓ Ready';}}
+function updSS(){const el=document.getElementById('rag-ss');if(!activeF)return;if(srvOK){el.textContent=dirty?'● unsaved':'✓ VPS synced';el.style.color=dirty?'var(--gold)':'var(--grn)';}else{el.textContent=dirty?'● in memory':'✓ in memory';el.style.color=dirty?'var(--cyan)':'var(--mu)';}}
+async function saveRAG(){
+  if(!activeF)return;const c=document.getElementById('rag-ta').value;ragData[activeF]=c;
+  if(srvOK){try{await apiFetch('/files/write','POST',{type:'rag',filename:activeF,content:c});dirty=false;showToast('Saved to VPS','ok');updSS();buildRAGList();}catch(e){showToast('Save failed','err');}}
+  else{dirty=false;showToast('Saved in memory','ok');updSS();buildRAGList();}
+}
+function resetTpl(){if(!activeF)return;if(!confirm('Reset to template?'))return;delete ragData[activeF];openRAG(activeF);}
+function exportRAG(){let s='',n=0;RAGF.forEach(r=>{if(ragData[r.f]){s+=`\n${'='.repeat(58)}\n# FILE: ${r.f}\n${'='.repeat(58)}\n${ragData[r.f]}\n`;n++;}});if(!n){showToast('No files','err');return;}const b=new Blob([s],{type:'text/plain'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='rag-bundle.txt';a.click();URL.revokeObjectURL(u);showToast(`Exported ${n} files`,'ok');}
+function importRAG(e){const f=e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=ev=>{ragData[f.name]=ev.target.result;const r=RAGF.find(x=>x.f===f.name);if(r){openRAG(f.name);showToast('Imported '+f.name,'ok');}else showToast('Unknown file','err');buildRAGList();};fr.readAsText(f);e.target.value='';}
+function loadTemplates(){RAGF.forEach(r=>{if(!ragData[r.f])ragData[r.f]=getTpl(r.f);});buildRAGList();buildChecklist();}
+
+// ── MODEL HELPERS ─────────────────────────────────────────────
+function getM(id){return agentModels[id]||DEF_MODELS[id];}
+function getMI(mid){return MODELS.find(m=>m.id===mid)||{id:mid,name:mid,provider:'?',cost:0,tags:[],desc:''};}
+function tagHtml(tags){return tags.map(t=>t==='rec'?'<span class="mtag mtag-rec">★ Rec</span>':t==='fast'?'<span class="mtag mtag-fast">⚡ Fast</span>':t==='cheap'?'<span class="mtag mtag-cheap">$ Cheap</span>':t==='powerful'?'<span class="mtag mtag-powerful">◈ Powerful</span>':t==='cn'?'<span class="mtag mtag-cn">CN</span>':'').join(' ');}
+function openMModal(agentId,e){
+  if(e)e.stopPropagation();modalAgentId=agentId;modalSelectedModel=getM(agentId);
+  const ag=AGENTS.find(a=>a.id===agentId);
+  document.getElementById('modal-title').textContent=`${ag.emoji} ${ag.name} — Choose Model`;
+  document.getElementById('modal-sub').textContent=ag.role;
+  buildModalBody();document.getElementById('model-modal').classList.add('open');
+}
+function buildModalBody(){
+  const providers=[...new Set(MODELS.map(m=>m.provider))];let html='';
+  providers.forEach(p=>{
+    const models=MODELS.filter(m=>m.provider===p);
+    const sKey=models[0]?.apiKey,kSet=sKey?!!gv(sKey):true;
+    const kLbl=kSet?`<span style="color:var(--grn);font-size:10px;font-family:var(--fm)">✓ key ok</span>`:`<span style="color:var(--red);font-size:10px;font-family:var(--fm)">⚠ ${sKey} missing</span>`;
+    html+=`<div class="model-sec-lbl">${p} ${kLbl}</div><div class="model-list">`;
+    models.forEach(m=>{const sel=modalSelectedModel===m.id,locked=!kSet;html+=`<div class="model-opt ${sel?'sel':''}" onclick="${locked?`showToast('Add ${m.apiKey} in Setup','err')`:`selM('${m.id}')`}" style="${locked?'opacity:.4;cursor:not-allowed':''}"><div class="model-radio"></div><div class="model-info"><div class="model-name">${m.name} ${tagHtml(m.tags)}</div><div class="model-desc">${m.desc}</div></div><div class="model-cost">$${m.cost.toFixed(5)}<br><span style="font-size:9px">per 1K tok</span></div></div>`;});
+    html+='</div>';
+  });
+  document.getElementById('modal-body').innerHTML=html;
+}
+function selM(mid){modalSelectedModel=mid;buildModalBody();}
+function closeM(){document.getElementById('model-modal').classList.remove('open');}
+function closeMBg(e){if(e.target===document.getElementById('model-modal'))closeM();}
+function applyModel(){if(!modalAgentId||!modalSelectedModel)return;agentModels[modalAgentId]=modalSelectedModel;closeM();buildFleetGrid();buildOverviewGrid();updateKPIs();lsSave();showToast(`${AGENTS.find(a=>a.id===modalAgentId).name} → ${getMI(modalSelectedModel).name}`,'ok');}
+
+// ── VPS ───────────────────────────────────────────────────────
+async function connSrv(){
+  const url=(document.getElementById('srv-url').value||'').trim().replace(/\/$/,'');
+  const tok=document.getElementById('srv-tok').value.trim();
+  if(!url){showToast('Enter server URL','err');return;}
+  try{
+    const res=await fetch(url+'/ping',{headers:tok?{'X-Token':tok}:{}});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    srvURL=url;srvTok=tok;srvOK=true;
+    document.getElementById('vps-bar').className='vps-bar connected';
+    document.getElementById('disc-btn').style.display='';
+    document.getElementById('srv-status').textContent='✓ '+url;
+    document.getElementById('srv-status').className='vps-st ok';
+    document.getElementById('sb-vps-dot').className='vps-mini-dot ok';
+    showToast('VPS connected','ok');startPolling();loadTaskLog();
+  }catch(e){showToast('Failed: '+e.message,'err');}
+}
+function discSrv(){srvURL=null;srvTok=null;srvOK=false;stopPolling();document.getElementById('vps-bar').className='vps-bar';document.getElementById('disc-btn').style.display='none';document.getElementById('srv-status').textContent='';document.getElementById('sb-poll-txt').textContent='VPS not connected';document.getElementById('sb-poll-txt2').textContent='VPS not connected';document.getElementById('poll-dot').style.display='none';document.getElementById('sb-vps-dot').className='vps-mini-dot';showToast('Disconnected');}
+async function apiFetch(p,m='GET',b=null){const o={method:m,headers:{'Content-Type':'application/json'}};if(srvTok)o.headers['X-Token']=srvTok;if(b)o.body=JSON.stringify(b);const r=await fetch(srvURL+p,o);if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}
+function startPolling(){document.getElementById('poll-dot').style.display='inline-block';pollAndLogs();pollInterval=setInterval(pollAndLogs,3000);}
+function stopPolling(){if(pollInterval)clearInterval(pollInterval);pollInterval=null;}
+async function pollAndLogs(){
+  if(!srvOK)return;
+  try{
+    const[status,logs]=await Promise.all([apiFetch('/status'),apiFetch('/logs?lines=300')]);
+    const dot=document.getElementById('sb-gw-txt'),bot=document.getElementById('sb-bot-count'),cpu=document.getElementById('sb-cpu');
+    if(dot)dot.textContent=status.gateway==='running'?'Gateway ✓':'Gateway ✗';
+    if(bot)bot.textContent=status.bots+'/9';
+    if(cpu)cpu.textContent=status.cpu||'—';
+    allLogLines=logs.lines||[];renderLogs();
+    const pt=document.getElementById('sb-poll-txt');if(pt)pt.textContent='Updated '+new Date().toLocaleTimeString('en-US',{hour12:false});
+    const pt2=document.getElementById('sb-poll-txt2');if(pt2)pt2.textContent='Updated '+new Date().toLocaleTimeString('en-US',{hour12:false});
+  }catch(e){const pt=document.getElementById('sb-poll-txt');if(pt)pt.textContent='Poll error';}
+}
+function renderLogs(){
+  const ft=(document.getElementById('log-fi')?.value||'').toLowerCase();
+  const filtered=allLogLines.filter(line=>!ft||line.toLowerCase().includes(ft));
+  const body=document.getElementById('log-body');
+  if(!filtered.length){body.innerHTML='<div class="log-empty">No matching lines</div>';document.getElementById('log-count').textContent='0 lines';return;}
+  const html=filtered.slice(-200).map(line=>{
+    let lvlCls='lvl-d',rowCls='';
+    if(/\berror\b/i.test(line)){lvlCls='lvl-e';rowCls='ll-e';}
+    else if(/\bwarn\b/i.test(line)){lvlCls='lvl-w';rowCls='ll-w';}
+    else if(/\binfo\b/i.test(line))lvlCls='lvl-i';
+    const ts=line.match(/^(\d{2}:\d{2}:\d{2})/)?.[1]||'';
+    const msg=line.replace(/^\d{2}:\d{2}:\d{2}\s+\w+\s+/,'').substring(0,200);
+    const lvl=lvlCls==='lvl-e'?'ERR':lvlCls==='lvl-w'?'WARN':lvlCls==='lvl-i'?'INFO':'DBG';
+    return `<div class="log-line ${rowCls}"><span class="log-ts">${ts}</span><span class="log-lvl ${lvlCls}">${lvl}</span><span class="log-msg">${eH(msg)}</span></div>`;
+  }).join('');
+  body.innerHTML=html;body.scrollTop=body.scrollHeight;
+  document.getElementById('log-count').textContent=filtered.length+' lines';
+}
+function eH(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+async function loadTaskLog(){if(!srvOK)return;try{const d=await apiFetch('/tasks');allTasks=d.tasks||[];renderTasks();}catch(e){}}
+function renderTasks(){
+  const ft=(document.getElementById('task-fi')?.value||'').toLowerCase();
+  const body=document.getElementById('task-body');
+  const filtered=allTasks.filter(t=>!ft||t.task?.toLowerCase().includes(ft)||t.routed_to?.toLowerCase().includes(ft));
+  document.getElementById('task-count').textContent=filtered.length+' tasks';
+  if(!filtered.length){body.innerHTML='<div class="log-empty">No tasks yet</div>';return;}
+  body.innerHTML=filtered.slice(0,100).map(t=>{
+    const sCls=t.status==='done'?'ts-done':t.status==='error'?'ts-error':'ts-pending';
+    const time=t.datetime?new Date(t.datetime).toLocaleTimeString('en-US',{hour12:false}):'';
+    return `<div class="task-item"><div class="task-header"><span class="task-route">→ ${t.routed_to||'?'}</span><span class="task-status ${sCls}">${t.status||'pending'}</span></div><div class="task-body">${eH((t.task||'').substring(0,120))}</div><div style="font-size:9px;color:var(--mu);margin-top:4px;font-family:var(--fm)">${time} · from: ${t.from_user||'?'}</div></div>`;
+  }).join('');
+}
+function switchLogTab(tab){
+  activeLogTab=tab;
+  document.getElementById('log-panel-sys').style.display=tab==='sys'?'flex':'none';
+  document.getElementById('log-panel-tasks').style.display=tab==='tasks'?'flex':'none';
+  document.getElementById('log-tab-sys').classList.toggle('active',tab==='sys');
+  document.getElementById('log-tab-tasks').classList.toggle('active',tab==='tasks');
+}
+function toggleLogSb(){logSbOpen=!logSbOpen;document.getElementById('log-sb').classList.toggle('collapsed',!logSbOpen);}
+
+// ── FORM HELPERS ───────────────────────────────────────────────
+function ofc(el){const v=el.value.trim();const s=document.getElementById('st-'+el.id);if(s){s.textContent=v?'✓':'·';s.style.color=v?'var(--grn)':'var(--mu)';}buildChecklist();updateSysStatus();lsSave();}
+function tv(id){const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';}
+function gv(id){const el=document.getElementById(id);return el?el.value.trim():'';}
+function genGw(){const a=new Uint8Array(24);crypto.getRandomValues(a);const t=Array.from(a).map(b=>b.toString(16).padStart(2,'0')).join('');const el=document.getElementById('GATEWAY_AUTH_TOKEN');el.value=t;el.type='text';ofc(el);showToast('Token generated','ok');}
+function esc(s){return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ── EXPORT ────────────────────────────────────────────────────
+function buildEnv(){
+  const sec=[
+    ['# === MODEL APIs ===',['ANTHROPIC_API_KEY','OPENAI_API_KEY','MINIMAX_API_KEY','GEMINI_API_KEY','ALIBABA_API_KEY']],
+    ['# === GATEWAY ===',['GATEWAY_AUTH_TOKEN']],
+    ['# === AGENT MODELS ===',AGENTS.map(a=>`AGENT_MODEL_${a.id.toUpperCase()}=${getM(a.id)}`)],
+    ['# === SLACK ===',['SLACK_BOT_TOKEN','SLACK_APPROVALS_CHANNEL_ID','SLACK_WEEKLY_REPORT_CHANNEL_ID','SLACK_ALERTS_CHANNEL_ID','SLACK_SECURITY_CHANNEL_ID']],
+    ['# === TELEGRAM ===',AGENTS.map(a=>`TG_TOKEN_${a.id.toUpperCase()}`)],
+    ['# === NOTION ===',['NOTION_TOKEN','NOTION_TASK_DB_ID','NOTION_BD_DB_ID','NOTION_FINANCE_DB_ID']],
+    ['# === TWITTER/X ===',['TWITTER_BEARER_TOKEN','TWITTER_API_KEY','TWITTER_API_SECRET','TWITTER_ACCESS_TOKEN','TWITTER_ACCESS_SECRET']],
+    ['# === OTHER ===',['COINGECKO_API_KEY','SERPAPI_KEY','APOLLO_API_KEY','DISCORD_BOT_TOKEN','SENDGRID_API_KEY','STABILITY_API_KEY']],
+  ];
+  const lines=['# Agent Mission Control — .env','# Generated by Dashboard','# Place at: ~/.openclaw/.env',''];
+  sec.forEach(([h,fs])=>{lines.push(h);fs.forEach(f=>{if(f.includes('=')){lines.push(f);return;}const v=gv(f);lines.push(v?`${f}=${v}`:`# ${f}=`);});lines.push('');});
+  document.getElementById('env-pre').textContent=lines.join('\n');
+}
+function dlEnv(){buildEnv();const b=new Blob([document.getElementById('env-pre').textContent],{type:'text/plain'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='.env';a.click();URL.revokeObjectURL(u);showToast('.env downloaded','ok');}
+function cpyEnv(){buildEnv();navigator.clipboard.writeText(document.getElementById('env-pre').textContent).then(()=>showToast('Copied','ok'));}
+function clrAll(){if(!confirm('Clear all tokens?'))return;document.querySelectorAll('input').forEach(el=>{if(el.type!=='file')el.value='';});document.querySelectorAll('[id^="st-"]').forEach(s=>{s.textContent='·';s.style.color='var(--mu)';});buildChecklist();updateSysStatus();lsSave();showToast('Cleared');}
+function cpyTerm(btn){const pre=btn.nextElementSibling;navigator.clipboard.writeText(pre.textContent).then(()=>{btn.textContent='copied!';btn.classList.add('ok');setTimeout(()=>{btn.textContent='copy';btn.classList.remove('ok');},2000);});}
+
+// ── NAV ───────────────────────────────────────────────────────
+setInterval(()=>document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour12:false}),1000);
+document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour12:false});
+function nav(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  document.querySelectorAll('.nav-tab,.sb-item').forEach(b=>b.classList.remove('active'));
+  const map={overview:0,agents:1,sop:2,rag:3,setup:4,export:5};
+  if(map[id]!==undefined){document.querySelectorAll('.nav-tab')[map[id]]?.classList.add('active');document.querySelectorAll('.sb-item')[map[id]]?.classList.add('active');}
+  if(id==='export')buildEnv();if(id==='sop')buildSOPAgentList();
+}
+
+// ── TOAST ─────────────────────────────────────────────────────
+function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+(type==='err'?'err':type==='ok'?'ok':'');setTimeout(()=>t.className='toast',2800);}
+
+// ── REFRESH ALL ───────────────────────────────────────────────
+function refreshAll(){buildTgFields();buildOverviewGrid();buildFleetGrid();buildSidebar();buildChecklist();buildRAGList();updateKPIs();updateSysStatus();buildSOPAgentList();}
+
+// ── INIT ──────────────────────────────────────────────────────
+function init(){
+  buildObGrid();
+  const saved=lsLoad();
+  if(saved&&saved.obData&&saved.obData.project){
+    document.getElementById('ob-overlay').style.display='none';
+    restoreFromStorage();refreshAll();loadTemplates();
+    const vpsUrl=document.getElementById('srv-url')?.value;
+    const vpsTok=document.getElementById('srv-tok')?.value;
+    if(vpsUrl&&vpsTok)setTimeout(connSrv,800);
+  }
+}
+init();
+</script>
+</body>
+</html>
